@@ -708,10 +708,67 @@ input[type="range"]::-moz-range-thumb {
     50% { box-shadow: 0 0 0 6px transparent; }
 }
 .queue-hint {
-    margin-top: 4px;
+    margin-top: 8px;
     text-align: center;
     font-size: 11px;
     color: var(--text-muted);
+}
+
+/* ===== 队列模式选择（普通 / 工程队列）===== */
+.queue-mode-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 0 2px;
+}
+.queue-mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    color: var(--text);
+    cursor: pointer;
+    transition: all var(--t-fast) var(--ease);
+    text-align: left;
+    min-width: 0;
+}
+.queue-mode-btn:hover {
+    background: var(--bg-elevated-2);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+.queue-mode-btn:active { transform: translateY(0); }
+.queue-mode-btn > svg { flex-shrink: 0; color: var(--text-secondary); }
+.queue-mode-text { min-width: 0; flex: 1; }
+.queue-mode-title {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.queue-mode-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.queue-mode-btn-highlight {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(168,85,247,0.15) 100%);
+    border-color: rgba(99,102,241,0.4);
+}
+.queue-mode-btn-highlight > svg { color: var(--accent); }
+.queue-mode-btn-highlight:hover {
+    background: linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(168,85,247,0.25) 100%);
+    border-color: var(--accent);
 }
 
 /* ===== Main / Gallery ===== */

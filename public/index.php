@@ -47,12 +47,12 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=100">
     <link rel="icon" type="image/x-icon" href="favicon.ico?v=100">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=100">
-    <link rel="stylesheet" href="assets/css/main.css?v=101">
-    <link rel="stylesheet" href="assets/css/components.css?v=101">
-    <link rel="stylesheet" href="assets/css/tag-picker.css?v=101">
-    <link rel="stylesheet" href="assets/css/gallery.css?v=101">
-    <link rel="stylesheet" href="assets/css/mask-editor.css?v=101">
-    <link rel="stylesheet" href="assets/css/themes.css?v=101">
+    <link rel="stylesheet" href="assets/css/main.css?v=102">
+    <link rel="stylesheet" href="assets/css/components.css?v=102">
+    <link rel="stylesheet" href="assets/css/tag-picker.css?v=102">
+    <link rel="stylesheet" href="assets/css/gallery.css?v=102">
+    <link rel="stylesheet" href="assets/css/mask-editor.css?v=102">
+    <link rel="stylesheet" href="assets/css/themes.css?v=102">
     <script>
         // Boot-time data for the SPA, no extra fetch needed
         window.__NAI_BOOT__ = {
@@ -346,10 +346,22 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                     <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 6h18M6 6v12h12V6M9 9l3 3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="3" width="18" height="4" fill="currentColor" opacity="0.3"/></svg>
                 </button>
             </div>
-            <div class="queue-hint">
-                队列生图：4 张 · 每 20s
-                <button class="link-button" id="queueCustomBtn" style="margin-left:8px">自定义</button>
-                <button class="link-button" id="openProjectQueueBtn" style="margin-left:4px" title="用预设姿势 × 不同张数批量生成">工程队列</button>
+            <div class="queue-hint">队列生图：4 张 · 每 20s</div>
+            <div class="queue-mode-row">
+                <button class="queue-mode-btn" id="queueCustomBtn" title="设置张数 / 间隔 / 重试次数">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M6 6v12h12V6M9 9l3 3 3-3"/><rect x="3" y="3" width="18" height="4" fill="currentColor" opacity="0.25"/></svg>
+                    <div class="queue-mode-text">
+                        <div class="queue-mode-title">普通队列</div>
+                        <div class="queue-mode-desc">N 张 · 间隔秒 · 自动重试</div>
+                    </div>
+                </button>
+                <button class="queue-mode-btn queue-mode-btn-highlight" id="openProjectQueueBtn" title="用姿势预设 × 不同张数批量生成">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/><path d="M9 12h.01M9 16h.01M13 12h2M13 16h2"/></svg>
+                    <div class="queue-mode-text">
+                        <div class="queue-mode-title">🧪 工程队列</div>
+                        <div class="queue-mode-desc">姿势 × 不同张数</div>
+                    </div>
+                </button>
             </div>
         </aside>
     </template>
@@ -1015,6 +1027,6 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <div class="toast-stack" id="toastStack"></div>
 
     <!-- Scripts -->
-    <script type="module" src="assets/js/app.js?v=101"></script>
+    <script type="module" src="assets/js/app.js?v=102"></script>
 </body>
 </html>
