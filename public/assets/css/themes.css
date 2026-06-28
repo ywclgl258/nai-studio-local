@@ -1,0 +1,32 @@
+/* ===========================================================================
+   NAI Studio - Themes
+   Theme-specific overrides and additional palettes
+   =========================================================================== */
+
+/* Already mostly in main.css; this is for additional themes / custom accents */
+
+[data-accent="pink"] {
+    --accent: #ec4899;
+    --accent-hover: #f472b6;
+    --accent-dim: rgba(236, 72, 153, 0.15);
+    --shadow-accent: 0 4px 16px rgba(236, 72, 153, 0.35);
+}
+[data-accent="cyan"] {
+    --accent: #06b6d4;
+    --accent-hover: #22d3ee;
+    --accent-dim: rgba(6, 182, 212, 0.15);
+    --shadow-accent: 0 4px 16px rgba(6, 182, 212, 0.35);
+}
+[data-accent="emerald"] {
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-dim: rgba(16, 185, 129, 0.15);
+    --shadow-accent: 0 4px 16px rgba(16, 185, 129, 0.35);
+}
+
+/* Print-friendly */
+@media print {
+    .topbar, .left-panel, .gallery-history-sidebar, .modal-backdrop { display: none; }
+    .gallery-area { grid-template-columns: 1fr; }
+    body { background: white; color: black; }
+}
