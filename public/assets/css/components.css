@@ -516,3 +516,43 @@
 }
 .preset-select:hover { border-color: var(--border-strong); }
 .preset-select:focus { outline: none; border-color: var(--accent); }
+
+/* ===== 工程队列 modal ===== */
+/* 关键：dark theme 下 select/option 默认白底，必须覆盖 */
+.project-row select,
+.project-row input,
+.project-queue-row select,
+.project-queue-row input {
+    background-color: var(--bg-elevated-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color var(--t-fast) var(--ease);
+}
+.project-row select:focus,
+.project-row input:focus,
+.project-queue-row select:focus,
+.project-queue-row input:focus {
+    border-color: var(--accent);
+}
+/* option 项：dark 下拉菜单也是白底，必须显式设 */
+.project-row select option,
+.project-queue-row select option {
+    background-color: var(--bg-elevated);
+    color: var(--text);
+    padding: 4px 8px;
+}
+.project-row input[type="number"],
+.project-queue-row input[type="number"] {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+/* placeholder 颜色 */
+.project-row input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+}

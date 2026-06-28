@@ -47,12 +47,12 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=100">
     <link rel="icon" type="image/x-icon" href="favicon.ico?v=100">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=100">
-    <link rel="stylesheet" href="assets/css/main.css?v=100">
-    <link rel="stylesheet" href="assets/css/components.css?v=100">
-    <link rel="stylesheet" href="assets/css/tag-picker.css?v=100">
-    <link rel="stylesheet" href="assets/css/gallery.css?v=100">
-    <link rel="stylesheet" href="assets/css/mask-editor.css?v=100">
-    <link rel="stylesheet" href="assets/css/themes.css?v=100">
+    <link rel="stylesheet" href="assets/css/main.css?v=101">
+    <link rel="stylesheet" href="assets/css/components.css?v=101">
+    <link rel="stylesheet" href="assets/css/tag-picker.css?v=101">
+    <link rel="stylesheet" href="assets/css/gallery.css?v=101">
+    <link rel="stylesheet" href="assets/css/mask-editor.css?v=101">
+    <link rel="stylesheet" href="assets/css/themes.css?v=101">
     <script>
         // Boot-time data for the SPA, no extra fetch needed
         window.__NAI_BOOT__ = {
@@ -993,7 +993,11 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                         <span></span>
                     </div>
                     <div id="projectQueueRows"></div>
-                    <button class="link-button" id="projectQueueAddBtn" style="margin-top:6px">+ 添加姿势预设</button>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                        <button class="link-button" id="projectQueueAddBtn">+ 空行</button>
+                        <button class="link-button" id="projectQueueQuickBtn" title="一键加：站/坐/蹲/躺/看/笑（每行 4 张）">⚡ 常用姿势</button>
+                        <button class="link-button" id="projectQueuePresetBtn" title="从已有姿势预设里选">📚 从预设选</button>
+                    </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg-elevated-2);border-radius:var(--r);font-size:12px">
                     <span style="color:var(--text-secondary)">合计</span>
@@ -1011,6 +1015,6 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <div class="toast-stack" id="toastStack"></div>
 
     <!-- Scripts -->
-    <script type="module" src="assets/js/app.js?v=100"></script>
+    <script type="module" src="assets/js/app.js?v=101"></script>
 </body>
 </html>
