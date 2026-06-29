@@ -3,9 +3,9 @@
  * Includes: thumbnail grid, action menu, one-click download, clear all
  */
 
-import { api } from './api.js';
-import { getState, setState } from './state.js';
-import { toast } from './toast.js';
+import { api } from './api.js?v=104';
+import { getState, setState } from './state.js?v=104';
+import { toast } from './toast.js?v=104';
 
 let _page = 1;
 const PER_PAGE = 30;

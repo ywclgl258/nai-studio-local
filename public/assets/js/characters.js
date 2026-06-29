@@ -10,11 +10,11 @@
  * 最终生成：主提示词 + 角色1 + 角色2 + 角色3 + 姿势 拼接
  */
 
-import { getState, setState } from './state.js';
-import { api } from './api.js';
-import { toast } from './toast.js';
-import { saveLocal } from './storage.js';
-import { openPresetSave } from './preset-modal.js';
+import { getState, setState } from './state.js?v=104';
+import { api } from './api.js?v=104';
+import { toast } from './toast.js?v=104';
+import { saveLocal } from './storage.js?v=104';
+import { openPresetSave } from './preset-modal.js?v=104';
 
 const MAX = 3;
 let _els = {};

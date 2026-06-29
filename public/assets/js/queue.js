@@ -3,11 +3,11 @@
  * N images with interval seconds, random seeds, auto-save
  */
 
-import { api } from './api.js';
-import { getState } from './state.js';
-import { buildGeneratePayload } from './generate-payload.js';
-import { toast } from './toast.js';
-import { reloadGallery } from './gallery.js';
+import { api } from './api.js?v=104';
+import { getState } from './state.js?v=104';
+import { buildGeneratePayload } from './generate-payload.js?v=104';
+import { toast } from './toast.js?v=104';
+import { reloadGallery } from './gallery.js?v=104';
 
 let _queue = [];
 let _running = false;

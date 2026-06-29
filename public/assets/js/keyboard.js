@@ -2,9 +2,9 @@
  * NAI Studio - Keyboard shortcuts
  */
 
-import { getState } from './state.js';
-import { api } from './api.js';
-import { toast } from './toast.js';
+import { getState } from './state.js?v=104';
+import { api } from './api.js?v=104';
+import { toast } from './toast.js?v=104';
 
 function isInputFocused() {
     const el = document.activeElement;

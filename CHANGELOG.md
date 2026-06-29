@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-06-29
+
+### 🐛 Bug Fixes
+- **子模块 import 强制加 `?v=104`**：之前 `app.js?v=104` 强制刷了，但子模块（characters/pose/presets 等）的 `import './xxx.js'` **没带版本号**，浏览器会缓存旧版本。导致用户看到 select 选项错位（3 个 select 都显示同一条）
+  - 给所有 95 个相对 import 加上 `?v=104`，强制每次重载子模块
+  - 这就是用户报的"三个 select 都一样，都是画风1"的根因
+
 ## [1.0.2] - 2026-06-29
 
 ### 🐛 Bug Fixes

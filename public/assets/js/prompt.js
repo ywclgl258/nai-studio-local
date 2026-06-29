@@ -3,7 +3,7 @@
  * Supports: {tag}, {tag:weight}, (tag), [tag], and Unicode
  */
 
-import { getState, setState, subscribe } from './state.js';
+import { getState, setState, subscribe } from './state.js?v=104';
 
 const QUALITY_TAGS = [
     'masterpiece, best quality, amazing quality, very aesthetic, absurdres',

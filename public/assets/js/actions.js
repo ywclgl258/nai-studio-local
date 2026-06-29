@@ -5,11 +5,11 @@
  *  - 一键清理: 清理画廊 + 缓存 + 孤立文件 + 日志
  */
 
-import { api } from './api.js';
-import { getState, setState } from './state.js';
-import { toast } from './toast.js';
-import { enqueueBatch } from './queue.js';
-import { reloadGallery } from './gallery.js';
+import { api } from './api.js?v=104';
+import { getState, setState } from './state.js?v=104';
+import { toast } from './toast.js?v=104';
+import { enqueueBatch } from './queue.js?v=104';
+import { reloadGallery } from './gallery.js?v=104';
 
 let _els = {};
 let _statusTimer = null;

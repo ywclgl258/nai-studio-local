@@ -7,10 +7,10 @@
  * 复用 runQueue：把 rows 展开为 N 个 queue items，每 item 自带 overrides.pose_prompt
  */
 
-import { getState } from './state.js';
-import { api } from './api.js';
-import { toast } from './toast.js';
-import { enqueueProject } from './queue.js';
+import { getState } from './state.js?v=104';
+import { api } from './api.js?v=104';
+import { toast } from './toast.js?v=104';
+import { enqueueProject } from './queue.js?v=104';
 
 let _els = {};
 let _rows = [];          // [{ label, posePrompt, count, interval, presetId? }]

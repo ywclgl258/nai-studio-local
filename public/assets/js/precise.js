@@ -2,10 +2,10 @@
  * NAI Studio - Precise References (V4+ character / style references)
  */
 
-import { getState, setState, subscribe } from './state.js';
-import { api } from './api.js';
-import { toast } from './toast.js';
-import { saveLocal } from './storage.js';
+import { getState, setState, subscribe } from './state.js?v=104';
+import { api } from './api.js?v=104';
+import { toast } from './toast.js?v=104';
+import { saveLocal } from './storage.js?v=104';
 
 function newId() { return 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 

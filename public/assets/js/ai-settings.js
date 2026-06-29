@@ -2,8 +2,8 @@
  * NAI Studio - AI settings: steps, scale, sampler, seed, advanced
  */
 
-import { getState, setState, subscribe } from './state.js';
-import { saveLocal } from './storage.js';
+import { getState, setState, subscribe } from './state.js?v=104';
+import { saveLocal } from './storage.js?v=104';
 
 const SAMPLER_LABELS = {
     k_euler_ancestral:    'Euler Ancestral',

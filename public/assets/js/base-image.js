@@ -2,10 +2,10 @@
  * NAI Studio - Base image (img2img / inpaint) manager
  */
 
-import { getState, setState } from './state.js';
-import { openMaskEditor } from './mask-editor.js';
-import { toast } from './toast.js';
-import { saveLocal } from './storage.js';
+import { getState, setState } from './state.js?v=104';
+import { openMaskEditor } from './mask-editor.js?v=104';
+import { toast } from './toast.js?v=104';
+import { saveLocal } from './storage.js?v=104';
 
 function clearBaseImage() {
     setState({ baseImage: null, mask: null });
