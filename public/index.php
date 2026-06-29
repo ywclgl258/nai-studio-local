@@ -171,18 +171,20 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
                     </button>
                 </div>
+                <!-- 主提示词预设快捷栏（独立行：tabs 下、editor 上）
+                     必须在 .prompt-editor 外部 — 内部的 .prompt-highlight 是 absolute inset:0，会盖住 row
+                     prompt.js 切 tab 时同步 toggle hidden（target !== 'prompt' 时隐藏） -->
+                <div class="prompt-preset-row preset-row-kind-prompt" id="promptPresetRow" data-kind="prompt">
+                    <span class="preset-kind-badge" data-kind="prompt" title="提示词预设">📋 提示词</span>
+                    <select class="preset-select" id="promptPresetQuickSelect" title="载入提示词预设（同时设置主+负面+模型）">
+                        <option value="">— 提示词预设 —</option>
+                    </select>
+                    <button class="ghost-button small" id="promptPresetQuickSaveBtn" title="把当前主+负面+模型保存为提示词预设">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z"/></svg>
+                        <span>保存</span>
+                    </button>
+                </div>
                 <div class="prompt-editor" id="promptEditor">
-                    <!-- 主提示词预设快捷栏（只在 prompt tab 显示，跟着 promptEditor 一起 toggle） -->
-                    <div class="prompt-preset-row preset-row-kind-prompt" id="promptPresetRow" data-kind="prompt">
-                        <span class="preset-kind-badge" data-kind="prompt" title="提示词预设">📋 提示词</span>
-                        <select class="preset-select" id="promptPresetQuickSelect" title="载入提示词预设（同时设置主+负面+模型）">
-                            <option value="">— 提示词预设 —</option>
-                        </select>
-                        <button class="ghost-button small" id="promptPresetQuickSaveBtn" title="把当前主+负面+模型保存为提示词预设">
-                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z"/></svg>
-                            <span>保存</span>
-                        </button>
-                    </div>
                     <div class="prompt-highlight" id="promptHighlight" aria-hidden="true"></div>
                     <textarea id="promptInput" class="prompt-input" rows="4" spellcheck="false" placeholder="1girl, masterpiece, best quality, ..."></textarea>
                 </div>

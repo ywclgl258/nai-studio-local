@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-06-29
+
+### 🐛 Critical Bug Fix
+- **主提示词预设栏和输入框重叠** — v1.0.5 把 #promptPresetRow 移进 #promptEditor 内部，但 .prompt-highlight 是 `position: absolute; inset: 0;` 覆盖整个 .prompt-editor，把 row 盖住了（视觉上 row 和 textarea 文字互相重叠）
+- **修法**：把 #promptPresetRow 移回 .prompt-editor **外部**（tabs 下、editor 上的独立行），改用 JS 在切 tab 时手动 toggle row 的 hidden
+- **教训**：带 `position: absolute; inset: 0` 的高亮层不能跟其他子元素共存，背景高亮用 `<textarea>` 自身 + `caret-color` 实现更好
+
 ## [1.0.5] - 2026-06-29
 
 ### 🐛 Critical Bug Fix
