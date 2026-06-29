@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-06-29
+
+### 🐛 Critical Bug Fix
+- **三个 select 都显示"画风1" + 主提示词 select 在所有 tab 都显示** — 用户报的真 bug
+  - **根因**：`#promptPresetRow`（v1.0.1 加的主提示词 inline select 栏）写在了 `.prompt-tabs` 之后、`.prompt-editor` 之前的**外部**位置。tab 切换只 toggle 了 4 个 editor 的 hidden，**没 toggle** 这个外部 row
+  - **结果**：切到"角色"或"姿势" tab 时，textarea 区域切换了，但**主提示词的"📋 提示词"徽章 + select 还在显示**。用户看到"三个 select 都一样"其实是**同一个主提示词 select**（只 1 条"画风1"）
+  - **角色/姿势自己的 select** 在 `charactersEditor` / `poseEditor` 内部，但因为这些 editor 被隐藏了，里面的 select 也看不到
+  - **修法**：把 `#promptPresetRow` 移进 `#promptEditor` 内部，跟 editor 一起 toggle。现在切到角色/姿势 tab 时，主提示词 select 一起隐藏，角色/姿势自己的 select 才显示出来
+  - **headless 验证**：v=104 HTML 结构里 `promptPresetRow` 正确在 `promptEditor` 内部
+
+### 🧪 为什么之前没发现
+- 我之前用 headless dump 看 3 个 select 的 option 数量都对（17/2/1），但**没看实际用户切 tab 时的视觉**
+- v1.0.2 我加了"📋 提示词 / 👤 角色 / 🧍 姿势"三个不同颜色徽章 — **但 v1.0.2 没改 tab 切换逻辑**，所以徽章加在 #promptPresetRow 永远显示的位置也没意义
+
 ## [1.0.4] - 2026-06-29
 
 ### 🐛 Bug Fixes

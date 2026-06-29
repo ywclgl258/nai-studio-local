@@ -135,6 +135,7 @@ export function initPromptEditor() {
         tab.addEventListener('click', () => {
             const target = tab.dataset.promptTab;
             document.querySelectorAll('.prompt-tab').forEach(t => t.classList.toggle('active', t === tab));
+            // #promptPresetRow 现在放在 #promptEditor 内部，所以跟 promptEditor 一起 toggle
             document.getElementById('promptEditor').classList.toggle('hidden', target !== 'prompt');
             document.getElementById('negativeEditor').classList.toggle('hidden', target !== 'negative');
             document.getElementById('charactersEditor').classList.toggle('hidden', target !== 'characters');

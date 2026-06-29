@@ -41,17 +41,6 @@ function renderPresets() {
     };
     fillSelect(_els.presetSelect, '— 提示词预设 —');
     fillSelect(_els.quickSelect, '— 提示词预设 —');
-    // DEBUG: 显示每个 select 的实际 option 数（让用户能看到加载到几个）
-    setTimeout(() => {
-        const ids = ['promptPresetQuickSelect', 'characterPresetSelect', 'posePresetSelect'];
-        for (const id of ids) {
-            const sel = document.getElementById(id);
-            if (sel) {
-                const n = sel.options.length - 1;  // 减去 placeholder
-                sel.title = `[${id}] ${n} 条预设 · ${Array.from(sel.options).slice(1).map(o => o.text).join(', ').slice(0, 200)}`;
-            }
-        }
-    }, 1500);
     // 2) 详细管理列表（折叠在 <details> 里，默认不展开）
     if (!_els.presetsList) return;
     _els.presetsList.innerHTML = '';
