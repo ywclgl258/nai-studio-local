@@ -6,6 +6,7 @@ import { api } from './api.js';
 import { getState, setState, subscribe } from './state.js';
 import { toast } from './toast.js';
 import { saveLocal } from './storage.js';
+import { openPresetSave } from './preset-modal.js';
 
 let _els = {};
 
@@ -21,19 +22,25 @@ async function loadPresets() {
 }
 
 function renderPresets() {
-    const presets = getState().presets || [];
+    const presets = (getState().presets || []).slice();
+    // 收藏的排前面
+    presets.sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0));
+
     // 1) 填充下拉选单（永远不超长）
-    if (_els.presetSelect) {
-        const current = _els.presetSelect.value;
-        _els.presetSelect.innerHTML = '<option value="">— 选择预设载入 —</option>';
+    const fillSelect = (sel, placeholder) => {
+        if (!sel) return;
+        const current = sel.value;
+        sel.innerHTML = `<option value="">${placeholder}</option>`;
         for (const p of presets) {
             const opt = document.createElement('option');
             opt.value = String(p.id);
-            opt.textContent = p.title + (p.is_favorite ? ' ★' : '');
-            _els.presetSelect.appendChild(opt);
+            opt.textContent = (p.is_favorite ? '★ ' : '') + p.title;
+            sel.appendChild(opt);
         }
-        if (current && presets.some(p => String(p.id) === current)) _els.presetSelect.value = current;
-    }
+        if (current && presets.some(p => String(p.id) === current)) sel.value = current;
+    };
+    fillSelect(_els.presetSelect, '— 选择预设载入 —');
+    fillSelect(_els.quickSelect, '— 预设 —');
     // 2) 详细管理列表（折叠在 <details> 里，默认不展开）
     if (!_els.presetsList) return;
     _els.presetsList.innerHTML = '';
@@ -88,22 +95,30 @@ function applyPreset(preset) {
 
 async function saveCurrentPreset() {
     const s = getState();
-    const title = prompt('预设名称：');
-    if (!title) return;
-    try {
-        await api.createPrompt({
-            title,
-            positive: s.prompt,
-            negative: s.negativePrompt,
-            model: s.model,
-            size: s.size,
-            uc_preset: s.ucPreset,
-        });
-        toast('已保存预设', { type: 'success' });
-        await loadPresets();
-    } catch (e) {
-        toast('保存失败: ' + e.message, { type: 'error' });
-    }
+    // 用更友好的弹窗（支持预设名称、收藏），而不是原生 prompt()
+    openPresetSave({
+        title: '保存主提示词预设',
+        hint: `当前内容：${(s.prompt || '').slice(0, 60)}${(s.prompt || '').length > 60 ? '…' : ''}`,
+        defaultName: (s.prompt || '').split(',')[0]?.trim().slice(0, 30) || '未命名',
+        showCategory: false,
+        onSave: async ({ name, isFavorite }) => {
+            try {
+                await api.createPrompt({
+                    title: name,
+                    positive: s.prompt,
+                    negative: s.negativePrompt,
+                    model: s.model,
+                    size: s.size,
+                    uc_preset: s.ucPreset,
+                    is_favorite: isFavorite ? 1 : 0,
+                });
+                toast(`已保存预设：${name}`, { type: 'success' });
+                await loadPresets();
+            } catch (e) {
+                toast('保存失败: ' + e.message, { type: 'error' });
+            }
+        },
+    });
 }
 
 // Snippets management
@@ -159,13 +174,16 @@ export function initPresets() {
     _els = {
         presetsList:    document.getElementById('presetsList'),
         presetSelect:   document.getElementById('presetSelectPane'),
+        quickSelect:    document.getElementById('promptPresetQuickSelect'),
         snippetsArea:   document.getElementById('snippetsArea'),
     };
-    if (!_els.presetsList) return;
 
     document.getElementById('presetSaveBtn')?.addEventListener('click', saveCurrentPreset);
+    document.getElementById('promptPresetQuickSaveBtn')?.addEventListener('click', saveCurrentPreset);
     document.getElementById('snippetsSaveBtn')?.addEventListener('click', saveSnippets);
     document.getElementById('snippetsAddBtn')?.addEventListener('click', insertSnippet);
+
+    // 浮窗内 select
     _els.presetSelect?.addEventListener('change', (e) => {
         const id = parseInt(e.target.value);
         if (!id) return;
@@ -173,6 +191,17 @@ export function initPresets() {
         if (p) applyPreset(p);
         e.target.value = '';
     });
+    // 主提示词上方 inline select
+    _els.quickSelect?.addEventListener('change', (e) => {
+        const id = parseInt(e.target.value);
+        if (!id) return;
+        const p = (getState().presets || []).find(x => x.id === id);
+        if (p) applyPreset(p);
+        e.target.value = '';
+    });
+
+    // 管理按钮（旧的 _els.presetsList 是浮窗里的"管理预设"折叠区）
+    if (!_els.presetsList) return;
 
     // Floating panel mini tabs
     document.querySelectorAll('.floating-panel .mini-tabs button').forEach(b => {

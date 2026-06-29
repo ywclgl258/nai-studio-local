@@ -47,12 +47,12 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=100">
     <link rel="icon" type="image/x-icon" href="favicon.ico?v=100">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=100">
-    <link rel="stylesheet" href="assets/css/main.css?v=102">
-    <link rel="stylesheet" href="assets/css/components.css?v=102">
-    <link rel="stylesheet" href="assets/css/tag-picker.css?v=102">
-    <link rel="stylesheet" href="assets/css/gallery.css?v=102">
-    <link rel="stylesheet" href="assets/css/mask-editor.css?v=102">
-    <link rel="stylesheet" href="assets/css/themes.css?v=102">
+    <link rel="stylesheet" href="assets/css/main.css?v=103">
+    <link rel="stylesheet" href="assets/css/components.css?v=103">
+    <link rel="stylesheet" href="assets/css/tag-picker.css?v=103">
+    <link rel="stylesheet" href="assets/css/gallery.css?v=103">
+    <link rel="stylesheet" href="assets/css/mask-editor.css?v=103">
+    <link rel="stylesheet" href="assets/css/themes.css?v=103">
     <script>
         // Boot-time data for the SPA, no extra fetch needed
         window.__NAI_BOOT__ = {
@@ -167,8 +167,19 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                     <button class="prompt-tab" data-prompt-tab="negative">负面</button>
                     <button class="prompt-tab" data-prompt-tab="characters">角色</button>
                     <button class="prompt-tab" data-prompt-tab="pose">姿势</button>
-                    <button class="icon-button small ghost" id="promptSettingsBtn" title="提示词设置">
-                        <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
+                    <button class="icon-button small ghost" id="promptSettingsBtn" title="提示词设置（质量/片段/UC 预设）">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
+                    </button>
+                </div>
+                <!-- 主提示词预设快捷栏（1 步载入，不用开浮窗） -->
+                <div class="prompt-preset-row" id="promptPresetRow">
+                    <svg class="prompt-preset-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-2.8-2.8L15 7"/></svg>
+                    <select class="preset-select" id="promptPresetQuickSelect" title="载入预设（同时设置主+负面+模型）">
+                        <option value="">— 预设 —</option>
+                    </select>
+                    <button class="ghost-button small" id="promptPresetQuickSaveBtn" title="把当前主+负面+模型保存为预设">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z"/></svg>
+                        <span>保存</span>
                     </button>
                 </div>
                 <div class="prompt-editor" id="promptEditor">
@@ -1027,6 +1038,6 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <div class="toast-stack" id="toastStack"></div>
 
     <!-- Scripts -->
-    <script type="module" src="assets/js/app.js?v=102"></script>
+    <script type="module" src="assets/js/app.js?v=103"></script>
 </body>
 </html>

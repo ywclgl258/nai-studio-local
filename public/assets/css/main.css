@@ -424,6 +424,15 @@ code {
 }
 .prompt-tabs .icon-button { margin-left: auto; }
 
+/* 主提示词 / 负面 预设快捷栏 */
+.prompt-preset-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 0;
+}
+.prompt-preset-row .preset-select { flex: 1; min-width: 0; }
+.prompt-preset-icon { color: var(--text-muted); flex-shrink: 0; }
+.prompt-preset-row .ghost-button { padding: 4px 10px; font-size: 11px; }
+
 .prompt-editor {
     position: relative;
     background: var(--bg);
