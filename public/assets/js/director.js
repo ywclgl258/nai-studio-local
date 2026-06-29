@@ -3,9 +3,9 @@
  * Image transformation (bg-removal, lineart, sketch, colorize, emotion, declutter)
  */
 
-import { getState, setState } from './state.js?v=104';
-import { api } from './api.js?v=104';
-import { toast } from './toast.js?v=104';
+import { getState, setState } from './state.js';
+import { api } from './api.js';
+import { toast } from './toast.js';
 
 let _source = null;       // {dataURL, path}
 let _result = null;       // dataURL

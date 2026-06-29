@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-29
+
+### 🐛 Bug Fixes
+- **回滚 v1.0.3 的 import ?v= 改动**：ES module 规范不严格支持 query string（每个 import ?v=104 浏览器会视为不同模块，导致单例破坏）。回滚到 v1.0.2 的相对 import
+- **加调试信息**：每个 preset select 的 title 现在显示 `[{id}] N 条预设 · 名字1, 名字2...`，用户悬停可看到实际加载到几个 + 名字列表
+- **下一步定位**：用户硬刷/无痕模式都看到"三个下拉都只有画风1" — 但 headless v=104 实测每个 select 内容正确（17/2/1）。怀疑是 user 浏览器实际加载了**老版本 JS**
+
 ## [1.0.3] - 2026-06-29
 
 ### 🐛 Bug Fixes

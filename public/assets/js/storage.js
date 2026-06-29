@@ -3,8 +3,8 @@
  * Persists state across page reloads, syncs to server settings.php on key events.
  */
 
-import { getState, setState, subscribe } from './state.js?v=104';
-import { api } from './api.js?v=104';
+import { getState, setState, subscribe } from './state.js';
+import { api } from './api.js';
 
 const STORAGE_KEY = 'nai-studio:v1';
 const DEBOUNCE_MS = 600;

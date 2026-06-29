@@ -2,32 +2,32 @@
  * NAI Studio - Main application entry
  */
 
-import { getState, setState, subscribe, resetWorkbench } from './state.js?v=104';
-import { loadLocal, initStorage, saveLocal } from './storage.js?v=104';
-import { api } from './api.js?v=104';
-import { buildGeneratePayload } from './generate-payload.js?v=104';
-import { toast } from './toast.js?v=104';
-import { enqueueBatch, initQueue } from './queue.js?v=104';
-import { initProjectQueue } from './project-queue.js?v=104';
+import { getState, setState, subscribe, resetWorkbench } from './state.js';
+import { loadLocal, initStorage, saveLocal } from './storage.js';
+import { api } from './api.js';
+import { buildGeneratePayload } from './generate-payload.js';
+import { toast } from './toast.js';
+import { enqueueBatch, initQueue } from './queue.js';
+import { initProjectQueue } from './project-queue.js';
 
-import { initPanel } from './panel.js?v=104';
-import { initPromptEditor } from './prompt.js?v=104';
-import { initAiSettings } from './ai-settings.js?v=104';
-import { initTagPicker } from './tag-picker.js?v=104';
-import { initCharacters } from './characters.js?v=104';
-import { initPose } from './pose.js?v=104';
-import { initVibe } from './vibe.js?v=104';
-import { initPrecise } from './precise.js?v=104';
-import { initBaseImage } from './base-image.js?v=104';
-import { initMaskEditor } from './mask-editor.js?v=104';
-import { initGallery } from './gallery.js?v=104';
-import { initImport } from './import.js?v=104';
-import { initDirector } from './director.js?v=104';
-import { initSettings } from './settings.js?v=104';
-import { initActions } from './actions.js?v=104';
-import { initPresets } from './presets.js?v=104';
-import { initKeyboard } from './keyboard.js?v=104';
-import { initPresetSave } from './preset-modal.js?v=104';
+import { initPanel } from './panel.js';
+import { initPromptEditor } from './prompt.js';
+import { initAiSettings } from './ai-settings.js';
+import { initTagPicker } from './tag-picker.js';
+import { initCharacters } from './characters.js';
+import { initPose } from './pose.js';
+import { initVibe } from './vibe.js';
+import { initPrecise } from './precise.js';
+import { initBaseImage } from './base-image.js';
+import { initMaskEditor } from './mask-editor.js';
+import { initGallery } from './gallery.js';
+import { initImport } from './import.js';
+import { initDirector } from './director.js';
+import { initSettings } from './settings.js';
+import { initActions } from './actions.js';
+import { initPresets } from './presets.js';
+import { initKeyboard } from './keyboard.js';
+import { initPresetSave } from './preset-modal.js';
 
 function mountTemplate(id) {
     const tpl = document.getElementById(id);

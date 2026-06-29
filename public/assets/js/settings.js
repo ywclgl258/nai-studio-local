@@ -2,10 +2,10 @@
  * NAI Studio - Settings modal
  */
 
-import { api } from './api.js?v=104';
-import { getState, setState, subscribe } from './state.js?v=104';
-import { toast } from './toast.js?v=104';
-import { saveLocal } from './storage.js?v=104';
+import { api } from './api.js';
+import { getState, setState, subscribe } from './state.js';
+import { toast } from './toast.js';
+import { saveLocal } from './storage.js';
 
 let _els = {};
 let _pmFilter = '';

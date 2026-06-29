@@ -3,7 +3,7 @@
  * 单张 onGenerate 和队列 queue.js 都用这个，避免字段不一致
  * overrides: 让队列 item 覆盖特定字段（例：工程队列每张用不同姿势）
  */
-import { getState } from './state.js?v=104';
+import { getState } from './state.js';
 
 export function buildGeneratePayload(s = getState(), batchId = null, overrides = {}) {
     return {

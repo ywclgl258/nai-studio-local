@@ -11,12 +11,12 @@
  * 最终生成时：主提示词 + 角色提示词 + 姿势提示词 拼接
  */
 
-import { getState, setState } from './state.js?v=104';
-import { api } from './api.js?v=104';
-import { toast } from './toast.js?v=104';
-import { saveLocal } from './storage.js?v=104';
-import { openPresetSave } from './preset-modal.js?v=104';
-import { openPresetManager } from './settings.js?v=104';
+import { getState, setState } from './state.js';
+import { api } from './api.js';
+import { toast } from './toast.js';
+import { saveLocal } from './storage.js';
+import { openPresetSave } from './preset-modal.js';
+import { openPresetManager } from './settings.js';
 
 let _els = {};
 

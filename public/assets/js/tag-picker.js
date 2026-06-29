@@ -7,8 +7,8 @@
  *  - 在线 Danbooru (无 cn_name 时回落到字典/在线翻译)
  */
 
-import { api } from './api.js?v=104';
-import { toast } from './toast.js?v=104';
+import { api } from './api.js';
+import { toast } from './toast.js';
 
 let _state = {
     open: false,

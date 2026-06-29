@@ -2,10 +2,10 @@
  * NAI Studio - Left panel: API key, model, size, sample count, anlas
  */
 
-import { getState, setState, subscribe } from './state.js?v=104';
-import { api } from './api.js?v=104';
-import { toast } from './toast.js?v=104';
-import { setPlainApiKey, saveLocal } from './storage.js?v=104';
+import { getState, setState, subscribe } from './state.js';
+import { api } from './api.js';
+import { toast } from './toast.js';
+import { setPlainApiKey, saveLocal } from './storage.js';
 
 const SIZE_PRESETS = [
     { value: '640x768',  label: '小竖图',   w: 640,  h: 768  },
