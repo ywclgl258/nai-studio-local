@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-06-29
+P26-06-29
 
 > 🎉 **重大版本：AI 全面接入 + 标签超市购物车化 + SQLite 独立数据库**
 > 累计新增 5 大功能模块、12 个新文件、7 个 bug 修复、19 张表 / 25,551 行数据迁移到 SQLite
