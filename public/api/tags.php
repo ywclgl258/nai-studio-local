@@ -2,7 +2,8 @@
 /**
  * /api/tags.php  — Tag library
  * GET ?action=categories                 -> all categories with counts
- * GET ?action=search&q=&category=&page=  -> search tags
+ * GET ?action=search&q=&category=&page=  -> search tags (本地 tags 表 + 分类)
+ * GET ?action=local_search&q=            -> 搜本地 danbooru_tag_cache (cn_name + name LIKE)
  * GET ?action=popular&category=N         -> popular in category
  * GET ?action=lookup&names=a,b,c         -> bulk lookup
  * GET ?action=detail&name=X              -> single tag
@@ -11,6 +12,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../src/bootstrap.php';
 
 use NaiStudio\TagManager;
+use NaiStudio\Db;
 
 $action = $_GET['action'] ?? 'categories';
 
@@ -31,6 +33,24 @@ switch ($action) {
             'per_page' => $perPage,
             'q'        => $q,
         ]);
+        break;
+    }
+    case 'local_search': {
+        // 搜本地缓存 danbooru_tag_cache (cn_name + name)
+        // 用于标签超市"输入时立即下拉"
+        $q = trim((string)($_GET['q'] ?? ''));
+        $limit = max(1, min(20, (int)($_GET['limit'] ?? 15)));
+        if ($q === '') { ok_response(['rows' => [], 'q' => $q]); break; }
+        $like = '%' . $q . '%';
+        $rows = Db::fetchAll(
+            "SELECT name, cn_name, category, post_count, example_image_url
+             FROM danbooru_tag_cache
+             WHERE name LIKE ? OR cn_name LIKE ?
+             ORDER BY post_count DESC, name ASC
+             LIMIT $limit",
+            [$like, $like]
+        );
+        ok_response(['rows' => $rows, 'q' => $q]);
         break;
     }
     case 'popular': {

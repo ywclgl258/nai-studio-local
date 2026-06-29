@@ -35,6 +35,110 @@ async function loadStats() {
     }
 }
 
+let _aiPresets = {};
+let _aiConfig   = {};
+
+async function loadAiConfig() {
+    try {
+        const r = await api.getAiConfig();
+        _aiPresets = r.presets || {};
+        _aiConfig  = r.config || {};
+        renderAiConfig();
+    } catch (e) {
+        console.warn('loadAiConfig', e);
+    }
+}
+
+function renderAiConfig() {
+    if (!_els.aiProvider) return;
+    const c = _aiConfig;
+    _els.aiProvider.value = c.provider || 'deepseek';
+    _els.aiBaseUrl.value  = c.base_url || '';
+    _els.aiKey.value      = c.api_key || '';
+    _els.aiAdvisor.checked = !!c.enabled;
+    if (_els.aiReasoning) _els.aiReasoning.value = c.reasoning_effort || '';
+
+    // 填充 datalist
+    const preset = _aiPresets[c.provider];
+    const models = (preset?.models || []);
+    const list = document.getElementById('settingsAiModelList');
+    if (list) {
+        list.innerHTML = '';
+        for (const m of models) {
+            const opt = document.createElement('option');
+            opt.value = m;
+            list.appendChild(opt);
+        }
+    }
+
+    // Model 兜底：如果当前 model 不在 preset 列表（DB 旧值），换成 preset 第一个
+    //   例如旧 deepseek-chat / deepseek-reasoner 归一化到 deepseek-v4-pro
+    let modelVal = c.model || '';
+    if (preset && models.length > 0 && !models.includes(modelVal)) {
+        modelVal = models[0];
+    }
+    _els.aiModel.value = modelVal;
+    // 推理等级是否显示
+    if (_els.aiReasoningWrap) {
+        _els.aiReasoningWrap.style.display = (preset?.supports_reasoning) ? '' : 'none';
+    }
+    // preset 提示
+    if (_els.aiPresetNote) {
+        const p = preset;
+        if (p) {
+            const freeTag = p.free ? '🆓 <strong>免费</strong> · ' : '';
+            const keyTag = p.needs_key ? '需要 API key' : '本地无需 key';
+            _els.aiPresetNote.innerHTML = `${freeTag}${keyTag} · ${escapeHtml(p.note || '')}`;
+        } else {
+            _els.aiPresetNote.textContent = '';
+        }
+    }
+    // key hint
+    if (_els.aiKeyHint) {
+        _els.aiKeyHint.textContent = preset?.needs_key ? '' : '(Ollama 本地可留空)';
+    }
+}
+
+function onAiProviderChange() {
+    const p = _els.aiProvider.value;
+    const preset = _aiPresets[p];
+    // 自动填 base_url / model（只在为空时填，避免覆盖用户已填的）
+    if (preset && preset.base_url) _els.aiBaseUrl.value = preset.base_url;
+    if (preset && preset.models && preset.models.length > 0) {
+        // 如果当前 model 不在 preset 列表里，就换成第一个
+        if (!preset.models.includes(_els.aiModel.value)) {
+            _els.aiModel.value = preset.models[0];
+        }
+    }
+    // 填充 datalist
+    const list = document.getElementById('settingsAiModelList');
+    if (list) {
+        list.innerHTML = '';
+        for (const m of (preset?.models || [])) {
+            const opt = document.createElement('option');
+            opt.value = m;
+            list.appendChild(opt);
+        }
+    }
+    // 推理等级是否显示
+    if (_els.aiReasoningWrap) {
+        _els.aiReasoningWrap.style.display = (preset?.supports_reasoning) ? '' : 'none';
+    }
+    // preset 提示
+    if (_els.aiPresetNote) {
+        if (preset) {
+            const freeTag = preset.free ? '🆓 <strong>免费</strong> · ' : '';
+            const keyTag = preset.needs_key ? '需要 API key' : '本地无需 key';
+            _els.aiPresetNote.innerHTML = `${freeTag}${keyTag} · ${escapeHtml(preset.note || '')}`;
+        } else {
+            _els.aiPresetNote.textContent = '';
+        }
+    }
+    if (_els.aiKeyHint) {
+        _els.aiKeyHint.textContent = preset?.needs_key ? '' : '(Ollama 本地可留空)';
+    }
+}
+
 async function save() {
     const patch = {
         default_model:    _els.defaultModel.value,
@@ -46,9 +150,21 @@ async function save() {
         quality_toggle:   _els.quality.checked ? 1 : 0,
         proxy_enabled:    _els.proxyEnabled?.checked ? 1 : 0,
         proxy_url:        _els.proxyUrl?.value.trim() || '',
+        local_translate_enabled: _els.localTranslateEnabled?.checked ? 1 : 0,
+        local_translate_url:     _els.localTranslateUrl?.value.trim() || '',
+        aggressive_fallback_enabled: _els.aggressiveFallback?.checked ? 1 : 0,
     };
     try {
         await api.updateSettings(patch);
+        // 单独保存 AI（用新 API）
+        await api.saveAiConfig({
+            enabled:           _els.aiAdvisor?.checked ? 1 : 0,
+            provider:          _els.aiProvider?.value || 'deepseek',
+            base_url:          _els.aiBaseUrl?.value.trim() || '',
+            api_key:           _els.aiKey?.value || '',    // 不过滤空，Ollama 不要
+            model:             _els.aiModel?.value.trim() || '',
+            reasoning_effort:  _els.aiReasoning?.value || '',
+        });
         // Apply to local state
         setState({
             model: patch.default_model,
@@ -62,7 +178,8 @@ async function save() {
         saveLocal();
         document.documentElement.dataset.theme = patch.theme;
         toast('设置已保存', { type: 'success' });
-        close();
+        // 重新拉 AI config 拿到最新状态
+        await loadAiConfig();
     } catch (e) {
         toast('保存失败: ' + e.message, { type: 'error' });
     }
@@ -78,6 +195,51 @@ async function testProxy() {
     } catch (e) {
         _els.proxyTestStatus.textContent = '✗ ' + e.message;
         _els.proxyTestStatus.style.color = 'var(--danger)';
+    }
+}
+
+async function testLocalTranslate() {
+    if (!_els.localTranslateStatus) return;
+    _els.localTranslateStatus.textContent = '测试中…';
+    _els.localTranslateStatus.style.color = 'var(--text-muted)';
+    try {
+        // 保存当前值再测
+        const enabled = _els.localTranslateEnabled?.checked;
+        const url = _els.localTranslateUrl?.value.trim();
+        await api.updateSettings({
+            local_translate_enabled: enabled ? 1 : 0,
+            local_translate_url: url || '',
+        });
+        const r = await api.testLocalTranslate();
+        _els.localTranslateStatus.textContent = r.message || (r.ok ? '✓ 可用' : '✗ 失败');
+        _els.localTranslateStatus.style.color = r.ok ? 'var(--success)' : 'var(--danger)';
+    } catch (e) {
+        _els.localTranslateStatus.textContent = '✗ ' + e.message;
+        _els.localTranslateStatus.style.color = 'var(--danger)';
+    }
+}
+
+async function testAi() {
+    const statusEl = document.getElementById('aiTestStatus');
+    if (!statusEl) return;
+    statusEl.textContent = '测试中…';
+    statusEl.style.color = 'var(--text-muted)';
+    try {
+        // 先保存最新配置
+        await api.saveAiConfig({
+            enabled:           _els.aiAdvisor?.checked ? 1 : 0,
+            provider:          _els.aiProvider?.value || 'deepseek',
+            base_url:          _els.aiBaseUrl?.value.trim() || '',
+            api_key:           _els.aiKey?.value || '',
+            model:             _els.aiModel?.value.trim() || '',
+            reasoning_effort:  _els.aiReasoning?.value || '',
+        });
+        const r = await api.testAi();
+        statusEl.textContent = r.message || (r.ok ? '✓ 可用' : '✗ 失败');
+        statusEl.style.color = r.ok ? 'var(--success)' : 'var(--danger)';
+    } catch (e) {
+        statusEl.textContent = '✗ ' + e.message;
+        statusEl.style.color = 'var(--danger)';
     }
 }
 
@@ -218,6 +380,20 @@ export function initSettings() {
         proxyEnabled: document.getElementById('settingsProxyEnabled'),
         proxyUrl: document.getElementById('settingsProxy'),
         proxyTestStatus: document.getElementById('proxyTestStatus'),
+        localTranslateEnabled: document.getElementById('settingsLocalTranslateEnabled'),
+        localTranslateUrl: document.getElementById('settingsLocalTranslateUrl'),
+        localTranslateStatus: document.getElementById('localTranslateStatus'),
+        aggressiveFallback: document.getElementById('settingsAggressiveFallback'),
+        aggressiveFallbackStatus: document.getElementById('aggressiveFallbackStatus'),
+        aiAdvisor: document.getElementById('settingsAiAdvisor'),
+        aiProvider: document.getElementById('settingsAiProvider'),
+        aiBaseUrl: document.getElementById('settingsAiBaseUrl'),
+        aiModel: document.getElementById('settingsAiModel'),
+        aiKey: document.getElementById('settingsAiKey'),
+        aiReasoning: document.getElementById('settingsAiReasoning'),
+        aiReasoningWrap: document.getElementById('settingsAiReasoningWrap'),
+        aiPresetNote: document.getElementById('settingsAiPresetNote'),
+        aiKeyHint: document.getElementById('settingsAiKeyHint'),
         defaultModel: document.getElementById('settingsDefaultModel'),
         defaultSize: document.getElementById('settingsDefaultSize'),
         defaultSteps: document.getElementById('settingsDefaultSteps'),
@@ -250,13 +426,36 @@ export function initSettings() {
             _els.proxyTestStatus.textContent = s.proxy_test_status;
             _els.proxyTestStatus.style.color = s.proxy_test_status.startsWith('ok:') ? 'var(--success)' : 'var(--danger)';
         }
+        if (_els.localTranslateEnabled) _els.localTranslateEnabled.checked = !!s.local_translate_enabled;
+        if (_els.localTranslateUrl) _els.localTranslateUrl.value = s.local_translate_url || '';
+        if (_els.localTranslateStatus && s.local_translate_status) {
+            _els.localTranslateStatus.textContent = s.local_translate_status;
+            _els.localTranslateStatus.style.color = s.local_translate_status === 'ok' ? 'var(--success)' : 'var(--danger)';
+        }
+        if (_els.aggressiveFallback) _els.aggressiveFallback.checked = !!s.aggressive_fallback_enabled;
+        if (_els.aggressiveFallbackStatus) {
+            _els.aggressiveFallbackStatus.textContent = s.aggressive_fallback_enabled ? '✓ 已启用' : '未启用';
+            _els.aggressiveFallbackStatus.style.color = s.aggressive_fallback_enabled ? 'var(--warning,#f59e0b)' : 'var(--text-muted)';
+        }
+        if (_els.aiAdvisor) _els.aiAdvisor.checked = !!s.ai_advisor_enabled;
     });
+
+    // 加载 AI provider 列表 + 当前 config
+    loadAiConfig();
+    _els.aiProvider?.addEventListener('change', onAiProviderChange);
+    document.getElementById('testAiBtn')?.addEventListener('click', testAi);
 
     // Version
     _els.version.textContent = window.__NAI_BOOT__?.version || '1.0.0';
 
     // Proxy test
     document.getElementById('testProxyBtn')?.addEventListener('click', testProxy);
+
+    // Local translate test
+    document.getElementById('testLocalTranslateBtn')?.addEventListener('click', testLocalTranslate);
+
+    // AI test (通用 provider)
+    // 由 loadAiConfig 后绑定
 
     // Events
     document.getElementById('openSettingsBtn')?.addEventListener('click', () => { open(); loadStats(); });

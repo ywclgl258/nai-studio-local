@@ -266,4 +266,22 @@ class TagDict {
         $key2 = strtolower(str_replace('_', ' ', trim($enName)));
         return self::$_map[$key1] ?? self::$_map[$key2] ?? null;
     }
+
+    private static ?array $_reverseMap = null;
+
+    /**
+     * 反向查表：中文 → 英文数组（一个中文可能对应多个英文 tag）
+     * 用途：标签超市中文搜索时优先用本地字典，避免 MyMemory 翻译成 "Changfa" 这种坑
+     * @return string[] 英文 tag 列表（找不到返回空数组）
+     */
+    public static function lookupReverse(string $cnName): array {
+        if (self::$_reverseMap === null) {
+            self::$_reverseMap = [];
+            foreach (self::DICT as $en => $cn) {
+                self::$_reverseMap[$cn][] = $en;
+            }
+        }
+        $key = trim($cnName);
+        return self::$_reverseMap[$key] ?? [];
+    }
 }

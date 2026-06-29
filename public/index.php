@@ -114,9 +114,21 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5-5 5 5"/><path d="M12 5v12"/></svg>
                 <span>导入图片</span>
             </button>
+            <button class="ghost-button" id="aiComposeBtn" title="AI 写提示词（DeepSeek V4 Pro / Flash 互动式）">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                <span>AI 写词</span>
+            </button>
             <button class="ghost-button" id="tagPickerBtn" title="打开标签选择器">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/></svg>
                 <span>标签库</span>
+            </button>
+            <button class="ghost-button" id="openDecomposeBtn" title="提示词拆解（按 12 类自动分类）">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h13M3 12h13M3 18h13"/><path d="M19 6v0M19 12v0M19 18v0"/><circle cx="19" cy="6" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="18" r="1.2" fill="currentColor"/></svg>
+                <span>拆解</span>
+            </button>
+            <button class="ghost-button" id="openArtistLibBtn" title="画师库（NOOB/NAI 双格式 + 画师串预设）">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg>
+                <span>画师库</span>
             </button>
             <button class="ghost-button" id="openSettingsBtn" title="设置">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -235,9 +247,13 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                         <select class="preset-select" id="posePresetSelect" title="选择姿势预设载入">
                             <option value="">— 姿势预设 —</option>
                         </select>
-                        <button class="icon-button small ghost" id="posePresetManageBtn" title="打开设置 → 预设 tab 管理收藏 / 删除">
+                        <button class="icon-button small ghost" id="posePresetManageBtn" title="管理预设（收藏/删除）">
                             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
                         </button>
+                    </div>
+                    <div class="pose-preset-panel hidden" id="posePresetPanel">
+                        <p class="preset-panel-hint">★ = 收藏 · 收藏的预设排在前面</p>
+                        <div id="posePresetList"></div>
                     </div>
                 </div>
 
@@ -557,32 +573,80 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
         <button type="button" class="danger" data-gallery-action="delete">删除图片</button>
     </div>
 
-    <!-- Tag picker overlay (仿 tags.novelai.dev 三栏布局) -->
+    <!-- Tag picker overlay (在线 Danbooru 搜索，中文自动翻译) -->
     <div class="tag-picker hidden" id="tagPicker">
         <div class="tag-picker-header">
             <div class="tag-picker-title">
                 <span class="tag-picker-title-icon">🏷</span>
                 <span>标签超市</span>
-                <span class="tag-picker-source-tabs">
-                    <button class="active" data-source="local">本地库</button>
-                    <button data-source="danbooru">在线 (Danbooru)</button>
-                </span>
+                <span class="tag-picker-source-badge">🌐 在线 Danbooru</span>
             </div>
-            <div class="tag-picker-search-row">
-                <svg class="tag-picker-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-                <input type="search" id="tagPickerSearch" placeholder="搜索标签 — 中文 / 英文 / 分类" autocomplete="off">
-                <button class="icon-button ghost" id="tagPickerCloseBtn" title="关闭 (Esc)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
+            <div class="tag-picker-search-wrap">
+                <div class="tag-picker-search-row">
+                    <svg class="tag-picker-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="search" id="tagPickerSearch" placeholder="输入中文 / 英文 tag — 中→英自动翻译 · 点击标签加入购物车" autocomplete="off">
+                    <button class="icon-button ghost" id="tagPickerCloseBtn" title="关闭 (Esc)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <!-- 本地下拉：输入时立即显示本地缓存匹配（cn_name + name） -->
+                <div class="tag-picker-dropdown hidden" id="tagPickerDropdown"></div>
+            </div>
+            <div class="tag-picker-translate-bar hidden" id="tagPickerTranslateBar">
+                <span class="tpt-icon">🔄</span>
+                <span class="tpt-text"></span>
             </div>
         </div>
         <div class="tag-picker-main">
-            <!-- 左侧：分类侧栏 -->
-            <aside class="tag-picker-sidebar" id="tagPickerCategories"></aside>
+            <!-- 左侧：分类侧栏（本地缓存分组 / Danbooru 全部 / 姿势 / 角色 / 画师） -->
+            <aside class="tag-picker-sidebar" id="tagPickerSidebar">
+                <button class="tag-picker-cat-btn active" data-cat="all">
+                    <span class="cat-icon">🔍</span>
+                    <span class="cat-name">全部结果</span>
+                    <span class="cat-count" id="tagPickerCatCountAll">0</span>
+                </button>
+                <button class="tag-picker-cat-btn" data-cat="local">
+                    <span class="cat-icon">📦</span>
+                    <span class="cat-name">本地缓存</span>
+                    <span class="cat-count" id="tagPickerCatCountLocal">0</span>
+                </button>
+                <button class="tag-picker-cat-btn" data-cat="online">
+                    <span class="cat-icon">🌐</span>
+                    <span class="cat-name">Danbooru</span>
+                    <span class="cat-count" id="tagPickerCatCountOnline">0</span>
+                </button>
+                <div class="tag-picker-sidebar-divider"></div>
+                <div class="tag-picker-sidebar-label">类别</div>
+                <button class="tag-picker-cat-btn" data-cat="0">
+                    <span class="cat-icon">🏷</span>
+                    <span class="cat-name">通用</span>
+                    <span class="cat-count" id="tagPickerCatCountGeneral">0</span>
+                </button>
+                <button class="tag-picker-cat-btn" data-cat="1">
+                    <span class="cat-icon">🎨</span>
+                    <span class="cat-name">画师</span>
+                    <span class="cat-count" id="tagPickerCatCountArtist">0</span>
+                </button>
+                <button class="tag-picker-cat-btn" data-cat="4">
+                    <span class="cat-icon">👤</span>
+                    <span class="cat-name">角色</span>
+                    <span class="cat-count" id="tagPickerCatCountChar">0</span>
+                </button>
+                <button class="tag-picker-cat-btn" data-cat="3">
+                    <span class="cat-icon">©</span>
+                    <span class="cat-name">版权</span>
+                    <span class="cat-count" id="tagPickerCatCountCopy">0</span>
+                </button>
+                <button class="tag-picker-cat-btn" data-cat="5">
+                    <span class="cat-icon">⚙</span>
+                    <span class="cat-name">元</span>
+                    <span class="cat-count" id="tagPickerCatCountMeta">0</span>
+                </button>
+            </aside>
             <!-- 中间：标签网格 -->
-            <div class="tag-picker-center">
+            <div class="tag-picker-center tag-picker-center-full">
                 <div class="tag-picker-center-header">
-                    <div class="tag-picker-center-title" id="tagPickerCenterTitle">全部</div>
+                    <div class="tag-picker-center-title" id="tagPickerCenterTitle">在线搜索</div>
                     <div class="tag-picker-center-meta">
                         <span id="tagPickerCount">0</span> 标签
                         <span class="tag-picker-divider">·</span>
@@ -590,33 +654,89 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                     </div>
                 </div>
                 <div class="tag-picker-body" id="tagPickerBody"></div>
-                <div class="tag-picker-loadmore">
-                    <button class="ghost-button" id="tagPickerLoadMoreBtn">加载更多 ↓</button>
-                </div>
             </div>
-            <!-- 右侧：已选面板 -->
-            <aside class="tag-picker-selected">
-                <div class="tag-picker-selected-header">
-                    <span>已选</span>
-                    <span class="tag-picker-selected-badge" id="tagPickerSelectedCount">0</span>
+            <!-- 右侧：购物车 -->
+            <aside class="tag-picker-cart" id="tagPickerCart">
+                <div class="tag-picker-cart-header">
+                    <div class="tag-picker-cart-title">
+                        🛒 购物车
+                        <span class="tag-picker-cart-badge" id="tagPickerCartBadge">0</span>
+                    </div>
+                    <button class="tag-picker-cart-clear ghost-button small" id="tagPickerCartClearBtn" title="清空购物车">🗑 清空</button>
                 </div>
-                <div class="tag-picker-selected-list" id="tagPickerSelectedList"></div>
-                <div class="tag-picker-selected-empty" id="tagPickerSelectedEmpty">
-                    <div class="tag-picker-selected-empty-icon">⊕</div>
-                    <div>点击左侧标签卡即可添加</div>
-                    <div class="tag-picker-selected-empty-hint">长按/右键标签可调权重</div>
+                <div class="tag-picker-cart-list" id="tagPickerCartList">
+                    <div class="tag-picker-cart-empty">
+                        <div class="empty-icon">🛒</div>
+                        <div>还没添加标签</div>
+                        <div class="empty-hint">点击中间任意标签卡加入购物车</div>
+                    </div>
+                </div>
+                <div class="tag-picker-cart-footer">
+                    <button class="primary-button" id="tagPickerCheckoutBtn" title="拼接所有已选 tag（逗号分隔）复制到剪贴板">
+                        📋 结算复制（<span id="tagPickerCartCount">0</span>）
+                    </button>
                 </div>
             </aside>
         </div>
         <div class="tag-picker-footer">
             <div class="tag-picker-footer-info">
-                <span>提示：按 <kbd>Enter</kbd> 插入 · <kbd>Esc</kbd> 关闭</span>
+                <span>提示：点击标签卡 = <strong>加入购物车</strong> · 点击购物车 ✕ = 移除 · 点击 🛒 结算 = 复制到剪贴板（逗号分隔） · <kbd>Esc</kbd> 关闭</span>
             </div>
             <div class="tag-picker-footer-actions">
-                <button class="ghost-button" id="tagPickerClearBtn">清空选择</button>
-                <button class="primary-button" id="tagPickerInsertBtn">插入到提示词</button>
+                <span class="tag-picker-footer-shortcut" id="tagPickerFooterShortcuts">
+                    💡 已选 <strong id="tagPickerFooterCount">0</strong> 个
+                </span>
             </div>
         </div>
+    </div>
+
+    <!-- AI 写提示词 弹窗 (DeepSeek V4 Pro / Flash) -->
+    <div class="modal-backdrop hidden" id="aiComposeModal">
+        <section class="ai-compose-modal" role="dialog" aria-modal="true" aria-labelledby="aiComposeTitle">
+            <!-- 顶部彩色边 -->
+            <div class="acm-accent-bar"></div>
+            <button class="modal-close" id="closeAiComposeBtn" title="关闭 (Esc)">×</button>
+            <header class="acm-header">
+                <div class="acm-header-left">
+                    <h2 id="aiComposeTitle">🧠 AI 写提示词 <span class="acm-version">V4 Pro</span></h2>
+                    <p class="acm-subtitle">DeepSeek V4 Pro / Flash 互动式 NAI 提示词工程 · 多轮对话 · 一键应用</p>
+                </div>
+                <div class="acm-header-right">
+                    <span class="acm-status" id="acmStatus">未连接</span>
+                    <button class="ghost-button small" id="acmClearBtn" title="清空对话">🗑 清空</button>
+                </div>
+            </header>
+
+            <main class="acm-main">
+                <div class="acm-model-bar">
+                    <span class="acm-model-label-text">目标 NAI 模型：</span>
+                    <div class="acm-model-chips" id="acmModelChips">
+                        <!-- chips 由 JS 渲染 -->
+                    </div>
+                </div>
+                <div class="acm-messages" id="acmMessages">
+                    <div class="acm-welcome">
+                        <div class="acm-welcome-icon">✨</div>
+                        <h3>开始对话</h3>
+                        <p>描述你想要的画面，AI 会按目标模型生成优化提示词。你可以：</p>
+                        <ul>
+                            <li>🖊 描述场景 → 拿完整 NAI prompt</li>
+                            <li>🔄 "加个樱花背景" → 增量调整</li>
+                            <li>💡 "为什么用 ciloranko" → 解释建议</li>
+                            <li>📋 把生成的 prompt 一键写入主输入框</li>
+                        </ul>
+                        <p class="acm-welcome-hint">提示：可到「设置 → AI 顾问」配 API key</p>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="acm-footer">
+                <div class="acm-input-row">
+                    <textarea id="acmInput" rows="2" placeholder="输入你的需求（Enter 发送 · Shift+Enter 换行）"></textarea>
+                    <button class="primary-button" id="acmSendBtn">发送 →</button>
+                </div>
+            </footer>
+        </section>
     </div>
 
     <!-- Settings modal -->
@@ -647,6 +767,90 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 <div style="display:flex;align-items:center;gap:8px">
                     <button class="ghost-button small" id="testProxyBtn">测试连接</button>
                     <span id="proxyTestStatus" style="font-size:11px;color:var(--text-muted)"></span>
+                </div>
+
+                <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+
+                <h3 style="font-size:13px;color:var(--accent);margin:0 0 8px">🧠 AI 顾问（多 provider 通用）</h3>
+                <p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">
+                    支持 DeepSeek、OpenAI、硅基流动（国内免费）、OpenRouter、Ollama（本地）、自定义（任何 OpenAI 兼容服务）。
+                    启用后，拆解器可点"🧠 AI 深度分析"，"AI 写提示词"也会用同 provider。
+                    <br>🔥 <strong>免费方案</strong>：硅基流动（Qwen2.5/GLM4/Llama3.1）+ OpenRouter（带 <code>:free</code> 标识的模型）+ Ollama 本地。
+                </p>
+                <label class="toggle-row">
+                    <span>启用 AI 顾问</span>
+                    <input type="checkbox" id="settingsAiAdvisor">
+                </label>
+                <label>Provider
+                    <select id="settingsAiProvider" style="width:100%;padding:6px 8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:var(--r-sm)">
+                        <option value="deepseek">DeepSeek（官方）</option>
+                        <option value="openai">OpenAI（官方）</option>
+                        <option value="siliconflow">硅基流动（国内免费）</option>
+                        <option value="openrouter">OpenRouter（聚合）</option>
+                        <option value="ollama">Ollama（本地）</option>
+                        <option value="custom">自定义（OpenAI 兼容）</option>
+                    </select>
+                </label>
+                <label>Base URL
+                    <input id="settingsAiBaseUrl" type="text" placeholder="https://api.deepseek.com/v1" autocomplete="off">
+                </label>
+                <div style="display:flex;gap:8px;align-items:flex-end">
+                    <label style="flex:1">
+                        Model
+                        <input id="settingsAiModel" type="text" placeholder="deepseek-chat" autocomplete="off" list="settingsAiModelList">
+                    </label>
+                    <datalist id="settingsAiModelList"></datalist>
+                    <label id="settingsAiReasoningWrap" style="display:none">
+                        推理等级
+                        <select id="settingsAiReasoning" style="padding:6px 8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:var(--r-sm)">
+                            <option value="">默认</option>
+                            <option value="low">低（快）</option>
+                            <option value="medium">中</option>
+                            <option value="high">高（慢但细）</option>
+                        </select>
+                    </label>
+                </div>
+                <label>API Key <span id="settingsAiKeyHint" style="font-size:10px;color:var(--text-muted);font-weight:normal"></span>
+                    <input id="settingsAiKey" type="password" placeholder="sk-..." autocomplete="off">
+                </label>
+                <p id="settingsAiPresetNote" style="font-size:11px;color:var(--text-secondary);background:var(--bg-elevated-2);padding:8px 10px;border-radius:6px;margin:8px 0"></p>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <button class="ghost-button small" id="testAiBtn">测试连接</button>
+                    <span id="aiTestStatus" style="font-size:11px;color:var(--text-muted)"></span>
+                </div>
+
+                <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+
+                <h3 style="font-size:13px;color:var(--warning,#f59e0b);margin:0 0 8px">⚠️ 非官方 Google 翻译 fallback</h3>
+                <p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">
+                    启用后，MyMemory 限流时会自动 fallback 到 Google 翻译的网页端点（<code>translate.googleapis.com/translate_a/single</code>）。
+                    <strong style="color:var(--warning,#f59e0b)">风险</strong>：
+                    Google 随时可能改接口、限速或封 IP；你的提示词会经 Google 服务器。
+                    标签翻译不涉及敏感内容，<strong>风险可控但不稳定</strong>。
+                </p>
+                <label class="toggle-row">
+                    <span>启用 Google 非官方 fallback</span>
+                    <input type="checkbox" id="settingsAggressiveFallback">
+                </label>
+                <div class="decompose-pane-meta" id="aggressiveFallbackStatus" style="margin-top:4px"></div>
+
+                <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+
+                <h3 style="font-size:13px;color:var(--accent);margin:0 0 8px">本地翻译（可选）</h3>
+                <p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">
+                    跑 LibreTranslate / OPUS-MT 本地服务后，填 URL 启用。完全离线，无每日翻译限额。
+                    优先级：内置字典 → 本地服务 → MyMemory 在线。
+                </p>
+                <label class="toggle-row">
+                    <span>启用本地翻译</span>
+                    <input type="checkbox" id="settingsLocalTranslateEnabled">
+                </label>
+                <label>服务地址
+                    <input id="settingsLocalTranslateUrl" type="text" placeholder="例如 http://127.0.0.1:5000">
+                </label>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <button class="ghost-button small" id="testLocalTranslateBtn">测试连接</button>
+                    <span id="localTranslateStatus" style="font-size:11px;color:var(--text-muted)"></span>
                 </div>
 
                 <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
@@ -961,9 +1165,310 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
         </section>
     </div>
 
+    <!-- Decompose modal (v3: 全屏工作台) -->
+    <div class="modal-backdrop hidden" id="decomposeModal">
+        <section class="decompose-modal" role="dialog" aria-modal="true" aria-labelledby="decomposeTitle">
+            <!-- 顶部彩色边 + 标题栏 -->
+            <header class="dm-header">
+                <div class="dm-header-left">
+                    <div class="dm-title">
+                        <span class="dm-title-icon">🪄</span>
+                        <h2 id="decomposeTitle">提示词拆解工作台</h2>
+                    </div>
+                    <div class="dm-subtitle">自动按 12 大类拆分 · 权重语法 · 一键补翻译 · AI 深度分析</div>
+                </div>
+                <div class="dm-header-right">
+                    <span class="dm-kbd-hint">
+                        <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 拆解
+                    </span>
+                    <button class="modal-close" id="closeDecomposeBtn" title="关闭（Esc）">×</button>
+                </div>
+            </header>
+
+            <!-- 主工作区：左输入 / 右结果 -->
+            <div class="decompose-grid">
+                <aside class="decompose-input-pane">
+                    <div class="decompose-pane-header">
+                        <strong>📝 原始提示词</strong>
+                        <span class="decompose-pane-meta" id="decomposeInputMeta">0 字符</span>
+                    </div>
+                    <textarea id="decomposeInput" placeholder="把一串 NAI 提示词粘贴到这里...&#10;&#10;例如：&#10;masterpiece, 1girl, hatsune_miku, long_hair, twintails, blue_eyes, smile, standing, school_uniform, cherry_blossoms, {artist:ciloranko}"></textarea>
+                    <div class="decompose-input-foot">
+                        <div class="decompose-input-foot-left">
+                            <button class="ghost-button small" id="decomposeSampleBtn" type="button" title="载入示例 prompt">📋 示例</button>
+                            <button class="ghost-button small" id="decomposeClearBtn" type="button" title="清空">🗑 清空</button>
+                        </div>
+                        <div class="decompose-input-foot-right">
+                            <label class="decompose-toggle" title="对未翻译的 tag 调一次翻译">
+                                <input type="checkbox" id="decomposeAutoTranslate" checked>
+                                <span>自动补翻译</span>
+                            </label>
+                            <button class="primary-button" id="decomposeRunBtn" type="button" title="开始拆解 (Ctrl+Enter)">⚡ 拆解</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <main class="decompose-result-pane" id="decomposeResultPane">
+                    <!-- 空状态：填充内容，不让右半边空着 -->
+                    <div class="decompose-empty" id="decomposeEmpty">
+                        <div class="deco-welcome">
+                            <div class="deco-welcome-icon">✨</div>
+                            <h3>等待拆解</h3>
+                            <p>把 NAI 提示词粘贴到左侧，点"⚡ 拆解"开始</p>
+                        </div>
+                        <div class="deco-tips">
+                            <div class="deco-tip">
+                                <span class="deco-tip-icon">🎨</span>
+                                <div>
+                                    <strong>画师串</strong>
+                                    <p>写 <code>{artist:ciloranko}</code> 会被识别为画师，自动给画像+建议</p>
+                                </div>
+                            </div>
+                            <div class="deco-tip">
+                                <span class="deco-tip-icon">⚖️</span>
+                                <div>
+                                    <strong>权重语法</strong>
+                                    <p>支持 <code>{tag:1.2}</code> 加大权重 / <code>[tag]</code> 减弱 / <code>(tag)</code> 增强</p>
+                                </div>
+                            </div>
+                            <div class="deco-tip">
+                                <span class="deco-tip-icon">🌐</span>
+                                <div>
+                                    <strong>未识别 tag</strong>
+                                    <p>勾选"自动补翻译"会调 MyMemory → DeepSeek 多源兜底</p>
+                                </div>
+                            </div>
+                            <div class="deco-tip">
+                                <span class="deco-tip-icon">🧠</span>
+                                <div>
+                                    <strong>AI 深度分析</strong>
+                                    <p>拆解后切到"AI"标签，让 DeepSeek 给语义冲突/冗余/优化建议</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="deco-recent hidden" id="decoRecentBlock">
+                            <div class="deco-recent-title">📚 最近拆解</div>
+                            <div class="deco-recent-list" id="decoRecentList"></div>
+                        </div>
+                    </div>
+                    <div class="decompose-loading hidden" id="decomposeLoading">
+                        <div class="decompose-spinner"></div>
+                        <div>正在拆解…</div>
+                    </div>
+                    <div class="decompose-result hidden" id="decomposeResult">
+                        <!-- 顶部大统计卡片 -->
+                        <div class="decompose-stats-cards" id="decomposeStats"></div>
+
+                        <!-- Tab 切换 -->
+                        <div class="decompose-tabbar">
+                            <button class="decompose-tab active" data-dtab="pairs">
+                                <span class="dtab-icon">📋</span>
+                                <span class="dtab-label">对照表</span>
+                                <span class="dtab-badge" id="dtabBadgePairs">0</span>
+                            </button>
+                            <button class="decompose-tab" data-dtab="artists">
+                                <span class="dtab-icon">🎨</span>
+                                <span class="dtab-label">画师</span>
+                                <span class="dtab-badge" id="dtabBadgeArtists">0</span>
+                            </button>
+                            <button class="decompose-tab" data-dtab="ai">
+                                <span class="dtab-icon">🧠</span>
+                                <span class="dtab-label">AI</span>
+                                <span class="dtab-badge" id="dtabBadgeAi">—</span>
+                            </button>
+                            <div class="decompose-tab-actions">
+                                <button class="primary-button small" id="decomposeAiBtn" type="button" title="用 DeepSeek 给整个 prompt 做深度分析">🧠 AI 深度分析</button>
+                            </div>
+                        </div>
+
+                        <!-- Tab: 对照表 -->
+                        <div class="decompose-tabpane active" data-dtabpane="pairs">
+                            <div class="decompose-pane-tools">
+                                <div class="decompose-pane-tools-left">
+                                    <label class="decompose-toggle" title="按 12 大类分组显示">
+                                        <input type="checkbox" id="decomposeGroupByCat">
+                                        <span>按分类分组</span>
+                                    </label>
+                                    <span class="decompose-pane-meta" id="decomposeCountMeta"></span>
+                                </div>
+                                <div class="decompose-pane-tools-right">
+                                    <button class="ghost-button small" id="decomposeFillTranslateBtn" type="button" title="翻译所有未翻译的中文栏">🌐 补翻译</button>
+                                    <button class="ghost-button small" id="decomposeAddRowBtn" type="button" title="添加一行">＋ 加一行</button>
+                                </div>
+                            </div>
+                            <div class="decompose-pairs">
+                                <div class="decompose-pairs-header">
+                                    <span>英文</span>
+                                    <span>中文</span>
+                                    <span>分类</span>
+                                    <span></span>
+                                </div>
+                                <div class="decompose-pairs-body" id="decomposePairsBody"></div>
+                            </div>
+                            <div class="decompose-untranslated hidden" id="decomposeUntranslatedBlock">
+                                <p id="decomposeUntranslatedHint">还有 <strong id="decomposeUntranslatedCount">0</strong> 个 tag 未翻译。</p>
+                            </div>
+                        </div>
+
+                        <!-- Tab: 画师 -->
+                        <div class="decompose-tabpane" data-dtabpane="artists">
+                            <div class="decompose-pane-empty" id="decomposeArtistEmpty">
+                                <div class="dpe-icon">🎨</div>
+                                <div>未检测到已知画师</div>
+                                <div class="dpe-hint">需要 prompt 里出现 <code>artist:xxx</code> 或在画像库里的画师名</div>
+                            </div>
+                            <div class="decompose-artist-pane hidden" id="decomposeArtistContent"></div>
+                        </div>
+
+                        <!-- Tab: AI -->
+                        <div class="decompose-tabpane" data-dtabpane="ai">
+                            <div class="decompose-pane-empty" id="decomposeAiEmpty">
+                                <div class="dpe-icon">🧠</div>
+                                <div>点击右上角 "🧠 AI 深度分析" 按钮</div>
+                                <div class="dpe-hint">让 DeepSeek 给整个 prompt 提结构化建议（语义冲突 / 权重 / 冗余 / 补充）</div>
+                            </div>
+                            <div class="decompose-ai-pane hidden" id="decomposeAiContent"></div>
+                        </div>
+
+                        <!-- 底部固定操作栏 -->
+                        <div class="decompose-bottom-actions">
+                            <span class="decompose-bottom-hint" id="decomposeBottomHint"></span>
+                            <button class="ghost-button" id="decomposeCopyRebuildBtn" type="button">📄 复制英文</button>
+                            <button class="ghost-button" id="decomposeCopyBothBtn" type="button">📄 复制双语</button>
+                            <button class="primary-button" id="decomposeApplyRebuildBtn" type="button">→ 写入主提示词</button>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </section>
+    </div>
+
+    <!-- Artist Library Modal -->
+    <div class="modal-backdrop hidden" id="artistLibModal">
+        <section class="artist-lib-modal" role="dialog" aria-modal="true" aria-labelledby="artistLibTitle">
+            <button class="modal-close" id="closeArtistLibBtn" title="关闭">×</button>
+            <h2 id="artistLibTitle">🎨 画师库</h2>
+            <p class="decompose-hint">
+                在线浏览 Danbooru 作者库（热门 + 模糊搜索 + 画风预览），点 ⭐ 收藏到本地。也可切到"我的"管理已收藏画师 + 画师串预设。
+            </p>
+
+            <div class="al-tabs">
+                <button class="al-tab active" data-al-tab="artists">画师</button>
+                <button class="al-tab" data-al-tab="presets">画师串预设</button>
+            </div>
+
+            <div class="al-toolbar">
+                <div class="al-toolbar-left">
+                    <input type="search" id="alSearchInput" class="al-search" placeholder="搜索画师（NAI 名 / 英文名）" />
+                </div>
+                <div class="al-toolbar-right">
+                    <span class="al-source-toggle">
+                        <button class="active" data-al-source="danbooru">🌐 Danbooru 在线</button>
+                        <button data-al-source="local">📚 我的画师</button>
+                    </span>
+                    <button class="ghost-button small" id="alRefreshBtn" title="刷新">🔄</button>
+                    <button class="primary-button small" id="alAddBtn" title="手动添加新画师">+ 添加画师</button>
+                </div>
+            </div>
+
+            <!-- 画师 tab -->
+            <div class="al-content" id="alArtistsTab">
+                <div class="al-artists">
+                    <div class="al-artists-list" id="alArtistsList"></div>
+                </div>
+            </div>
+
+            <!-- 画师串预设 tab -->
+            <div class="al-content hidden" id="alPresetsTab">
+                <div class="al-presets-list" id="alPresetsList"></div>
+                <div class="al-presets-actions">
+                    <button class="primary-button small" id="alNewPresetBtn">+ 新建画师串</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Add/Edit Artist Modal -->
+    <div class="modal-backdrop hidden" id="artistFormModal">
+        <section class="artist-form-modal" role="dialog" aria-modal="true" aria-labelledby="artistFormTitle">
+            <button class="modal-close" id="closeArtistFormBtn" title="关闭">×</button>
+            <h3 id="artistFormTitle">添加画师</h3>
+            <form id="artistForm" class="artist-form">
+                <div class="af-row">
+                    <label>NAI 格式 <span class="af-hint">裸名，无前缀</span>
+                        <input type="text" id="afNameNai" placeholder="如 ciloranko" autocomplete="off">
+                    </label>
+                    <label>NOOB 格式 <span class="af-hint">自动补全，可手改</span>
+                        <input type="text" id="afNameNoob" placeholder="如 artist:ciloranko" autocomplete="off">
+                    </label>
+                </div>
+                <div class="af-row">
+                    <label>中文名
+                        <input type="text" id="afNameCn" placeholder="可选，如 西洛兰科" autocomplete="off">
+                    </label>
+                    <label>风格
+                        <select id="afStyle">
+                            <option value="">(未分类)</option>
+                            <option value="thick_anime">厚涂二次元</option>
+                            <option value="soft_anime">软萌二次元</option>
+                            <option value="realistic">写实派</option>
+                            <option value="cinematic">电影感</option>
+                            <option value="illustration">插画风</option>
+                            <option value="dark">黑暗系</option>
+                            <option value="classic">经典派</option>
+                        </select>
+                    </label>
+                </div>
+                <label>Danbooru 链接
+                    <input type="url" id="afDanbooruLink" placeholder="自动生成：https://danbooru.donmai.us/posts?tags=artist%3Axxx" autocomplete="off">
+                </label>
+                <label>分类 <span class="af-hint">可多选（按住 Ctrl/Cmd）</span>
+                    <select id="afCategories" multiple size="5" class="af-multiselect"></select>
+                </label>
+                <label>备注
+                    <textarea id="afNotes" rows="2" placeholder="如：NAI 社区御用画师，厚涂质感极强"></textarea>
+                </label>
+                <div class="af-actions">
+                    <button type="button" class="ghost-button small" id="afAutoBtn" title="根据已填字段自动补全">⚡ 自动补全</button>
+                    <button type="button" class="ghost-button small" id="afFetchBtn" title="从 Danbooru 抓取作品数 + 预览图">🌐 抓取 Danbooru</button>
+                    <div class="af-spacer"></div>
+                    <button type="button" class="ghost-button" id="afCancelBtn">取消</button>
+                    <button type="submit" class="primary-button" id="afSaveBtn">保存</button>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <!-- Preset Form Modal -->
+    <div class="modal-backdrop hidden" id="presetFormModal">
+        <section class="artist-form-modal" role="dialog" aria-modal="true" aria-labelledby="presetFormTitle">
+            <button class="modal-close" id="closePresetFormBtn" title="关闭">×</button>
+            <h3 id="presetFormTitle">新建画师串</h3>
+            <form id="presetForm" class="artist-form">
+                <label>名称
+                    <input type="text" id="pfName" placeholder="如 二次元厚涂三件套" required>
+                </label>
+                <label>描述
+                    <input type="text" id="pfDesc" placeholder="可选，如 ciloranko + fuzichoco + huke">
+                </label>
+                <label>画师 <span class="af-hint">按住 Ctrl/Cmd 多选，NAI 格式按选中顺序拼接</span>
+                    <select id="pfArtists" multiple size="8" class="af-multiselect"></select>
+                </label>
+                <label>NAI 文本预览
+                    <textarea id="pfNaiPreview" rows="2" readonly></textarea>
+                </label>
+                <div class="af-actions">
+                    <div class="af-spacer"></div>
+                    <button type="button" class="ghost-button" id="pfCancelBtn">取消</button>
+                    <button type="submit" class="primary-button" id="pfSaveBtn">保存</button>
+                </div>
+            </form>
+        </section>
+    </div>
+
     <!-- Preset save modal -->
-    <div class="modal-backdrop hidden" id="presetSaveModal">
-        <section class="settings-modal" role="dialog" aria-modal="true" style="max-width:440px">
+    <div class="modal-backdrop hidden" id="presetSaveModal" role="dialog" aria-modal="true">
+        <section class="settings-modal" style="max-width:440px">
             <button class="modal-close" id="closePresetSaveBtn" title="关闭">×</button>
             <h2 id="presetSaveTitle">保存预设</h2>
             <p style="font-size:12px;color:var(--text);margin-bottom:16px;padding:8px 12px;background:var(--bg-elevated-2);border-radius:var(--r-sm)" id="presetSaveHint"></p>

@@ -21,12 +21,21 @@ return [
 
     // --- Database ---
     'db' => [
-        'host'    => '127.0.0.1',
-        'port'    => 3306,
-        'name'    => 'nai_studio',
-        'user'    => 'root',
-        'pass'    => '',
-        'charset' => 'utf8mb4',
+        // 驱动选择：'sqlite'（默认，独立单文件） 或 'mysql'（传统 XAMPP）
+        'driver' => 'sqlite',
+
+        // SQLite 单文件路径
+        'sqlite_path' => dirname(__DIR__) . '/data/nai-studio.db',
+
+        // MySQL 配置（仅当 driver='mysql' 时生效）
+        'mysql' => [
+            'host'    => '127.0.0.1',
+            'port'    => 3306,
+            'name'    => 'nai_studio',
+            'user'    => 'root',
+            'pass'    => '',
+            'charset' => 'utf8mb4',
+        ],
     ],
 
     // --- Security ---

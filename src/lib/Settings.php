@@ -53,6 +53,12 @@ class Settings {
             'default_cfg_rescale','default_noise_schedule','default_size',
             'default_uc_preset','quality_toggle','emphasis_highlight',
             'theme','proxy_enabled','proxy_url','proxy_test_status','proxy_tested_at',
+            'local_translate_enabled','local_translate_url',
+            'local_translate_status','local_translate_tested_at',
+            'aggressive_fallback_enabled',
+            'danbooru_username','danbooru_api_key',
+            'deepseek_api_key','deepseek_model','deepseek_base_url',
+            'deepseek_status','deepseek_tested_at','ai_advisor_enabled',
             'ui_state','anlas_balance','anlas_updated_at',
         ];
         $data = array_intersect_key($data, array_flip($allowed));
@@ -74,6 +80,23 @@ class Settings {
         $row = Db::fetchOne("SELECT proxy_enabled, proxy_url FROM settings WHERE id = 1");
         if (!$row || empty($row['proxy_enabled']) || empty($row['proxy_url'])) return null;
         return trim((string)$row['proxy_url']);
+    }
+
+    /** Get local translate URL if enabled, else null. */
+    public static function getLocalTranslateUrl(): ?string {
+        $row = Db::fetchOne("SELECT local_translate_enabled, local_translate_url FROM settings WHERE id = 1");
+        if (!$row || empty($row['local_translate_enabled']) || empty($row['local_translate_url'])) return null;
+        return trim((string)$row['local_translate_url']);
+    }
+
+    public static function getLocalTranslateEnabled(): bool {
+        $row = Db::fetchOne("SELECT local_translate_enabled FROM settings WHERE id = 1");
+        return !empty($row) && !empty($row['local_translate_enabled']);
+    }
+
+    public static function getAggressiveFallbackEnabled(): bool {
+        $row = Db::fetchOne("SELECT aggressive_fallback_enabled FROM settings WHERE id = 1");
+        return !empty($row) && !empty($row['aggressive_fallback_enabled']);
     }
 
     /** Test the proxy URL by attempting to reach NAI user/subscription through it. */

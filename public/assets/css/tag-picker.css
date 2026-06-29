@@ -145,6 +145,20 @@
 .tag-picker-sidebar::-webkit-scrollbar { width: 4px; }
 .tag-picker-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+.tag-picker-sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 6px;
+}
+.tag-picker-sidebar-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 4px 12px 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
 .tag-picker-cat-btn {
     display: flex;
     align-items: center;
@@ -254,26 +268,31 @@
 }
 .tag-picker-loadmore.hidden { display: none; }
 
-/* ===== 右：已选面板 ===== */
-.tag-picker-selected {
+/* ===== 右：购物车 ===== */
+.tag-picker-cart {
     border-left: 1px solid var(--border);
     background: var(--bg-elevated-2);
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
-.tag-picker-selected-header {
+.tag-picker-cart-header {
     padding: 12px 14px;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
+}
+.tag-picker-cart-title {
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-.tag-picker-selected-badge {
+.tag-picker-cart-badge {
     background: var(--accent);
     color: white;
     padding: 1px 8px;
@@ -282,8 +301,18 @@
     font-weight: 600;
     min-width: 22px;
     text-align: center;
+    font-variant-numeric: tabular-nums;
 }
-.tag-picker-selected-list {
+.tag-picker-cart-clear {
+    font-size: 11px;
+    padding: 3px 8px;
+    color: var(--text-muted);
+}
+.tag-picker-cart-clear:hover {
+    color: #ef4444;
+}
+
+.tag-picker-cart-list {
     flex: 1;
     overflow-y: auto;
     padding: 8px;
@@ -292,10 +321,10 @@
     gap: 4px;
     min-height: 0;
 }
-.tag-picker-selected-list::-webkit-scrollbar { width: 4px; }
-.tag-picker-selected-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.tag-picker-cart-list::-webkit-scrollbar { width: 4px; }
+.tag-picker-cart-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-.tag-picker-selected-empty {
+.tag-picker-cart-empty {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -307,18 +336,96 @@
     padding: 20px;
     gap: 8px;
 }
-.tag-picker-selected-empty-icon {
+.tag-picker-cart-empty .empty-icon {
     font-size: 36px;
     opacity: 0.4;
 }
-.tag-picker-selected-empty-hint {
+.tag-picker-cart-empty .empty-hint {
     font-size: 10px;
     opacity: 0.6;
     margin-top: 2px;
 }
-.tag-picker-selected:not(:has(.tag-picker-selected-list > *)) .tag-picker-selected-list { display: none; }
-.tag-picker-selected:not(:has(.tag-picker-selected-list > *)) .tag-picker-selected-empty { display: flex; }
-.tag-picker-selected:has(.tag-picker-selected-list > *) .tag-picker-selected-empty { display: none; }
+.tag-picker-cart-list:empty + .tag-picker-cart-empty { display: flex; }
+.tag-picker-cart-list:not(:empty) + .tag-picker-cart-empty { display: none; }
+
+.tag-picker-cart-footer {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg-elevated);
+}
+.tag-picker-cart-footer .primary-button {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* 购物车里的单条 tag */
+.cart-tag-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    font-size: 12px;
+    transition: all var(--t-fast) var(--ease);
+}
+.cart-tag-row:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+}
+.cart-tag-row .cart-index {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cart-tag-row .cart-name {
+    flex: 1;
+    font-family: var(--font-mono);
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+}
+.cart-tag-row .cart-cn {
+    font-size: 10px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 60px;
+    flex-shrink: 0;
+}
+.cart-tag-row .cart-remove {
+    width: 20px; height: 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.cart-tag-row .cart-remove:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
 
 /* 已选中的标签行 */
 .selected-tag-row {

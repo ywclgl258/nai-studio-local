@@ -135,6 +135,14 @@ export function showMainImage(item) {
     if (favBtn) {
         favBtn.style.color = item.is_favorite ? '#fbbf24' : 'white';
     }
+    // 关键：同步 state.activeImage 和 _activeId，刷新历史区选中
+    _activeId = item.id;
+    setState({ activeImage: item });
+    // 把新图塞到 _allItems 头部（如果还没有的话）
+    if (!_allItems.find(x => x.id === item.id)) {
+        _allItems.unshift(item);
+    }
+    render();   // 重新渲染历史区，激活 class 会正确
 }
 
 async function downloadImage(item) {

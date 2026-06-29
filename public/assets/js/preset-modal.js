@@ -17,7 +17,10 @@ let _onSave = null;
 
 function show(showIt) {
     const modal = document.getElementById('presetSaveModal');
-    if (!modal) return;
+    if (!modal) {
+        console.error('[preset-modal] #presetSaveModal not found in DOM — modal HTML missing');
+        return;
+    }
     modal.classList.toggle('hidden', !showIt);
     if (showIt) {
         setTimeout(() => document.getElementById('presetSaveName')?.focus(), 50);

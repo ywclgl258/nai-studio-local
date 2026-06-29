@@ -28,6 +28,9 @@ import { initActions } from './actions.js';
 import { initPresets } from './presets.js';
 import { initKeyboard } from './keyboard.js';
 import { initPresetSave } from './preset-modal.js';
+import { initDecomposer } from './decomposer.js';
+import { initArtistLibrary } from './artist_library.js';
+import { initAiCompose } from './ai-compose.js';
 
 function mountTemplate(id) {
     const tpl = document.getElementById(id);
@@ -182,6 +185,9 @@ async function boot() {
     initProjectQueue();
     initKeyboard();
     initPresetSave();
+    initDecomposer();
+    initArtistLibrary();
+    initAiCompose();
     setupMobileMenu();
     setupRefreshUI();
 

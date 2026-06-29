@@ -33,7 +33,7 @@ switch ($method) {
             $params = array_merge($params, ["%$search%","%$search%","%$search%"]); }
         if ($fav) $where .= ' AND is_favorite = 1';
         $total = (int)Db::fetchScalar("SELECT COUNT(*) FROM prompts WHERE $where", $params);
-        $rows = Db::fetchAll("SELECT id, title, description, model, size, uc_preset, is_favorite, use_count, last_used_at, created_at, updated_at, LEFT(positive, 200) AS positive_preview FROM prompts WHERE $where ORDER BY is_favorite DESC, last_used_at DESC, id DESC LIMIT $offset, $perPage", $params);
+        $rows = Db::fetchAll("SELECT id, title, description, model, size, uc_preset, is_favorite, use_count, last_used_at, created_at, updated_at, substr(positive, 1, 200) AS positive_preview FROM prompts WHERE $where ORDER BY is_favorite DESC, last_used_at DESC, id DESC LIMIT $offset, $perPage", $params);
         ok_response(['rows' => $rows, 'total' => $total, 'page' => $page, 'per_page' => $perPage]);
     }
     case 'POST': {

@@ -21,7 +21,7 @@ use NaiStudio\Translator;
 
 $action = $_GET['action'] ?? 'tag';
 $q      = trim((string)($_GET['q'] ?? ''));
-$limit  = max(1, min(50, (int)($_GET['limit'] ?? 24)));
+$limit  = max(1, min(100, (int)($_GET['limit'] ?? 50)));
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -59,55 +59,91 @@ function dbFetch(string $url, int $timeout = 8): ?array {
 
 if ($action === 'tag') {
     if ($q === '') {
-        ok_response(['rows' => [], 'source' => 'empty', 'q' => $q, 'translated' => 0]);
+        ok_response(['rows' => [], 'source' => 'empty', 'q' => $q, 'translated' => 0, 'from_cn' => null, 'to_en' => null]);
         exit;
     }
 
-    // 1) 优先本地缓存（包含翻译）
-    $cached = Db::fetchAll(
-        "SELECT id, name, cn_name, category, post_count, example_image_url, translated_at
-         FROM danbooru_tag_cache
-         WHERE name LIKE ?
-         ORDER BY post_count DESC LIMIT $limit",
-        [$q . '%']
-    );
-    $cachedCn = 0;
-    foreach ($cached as &$c) {
-        if (!empty($c['cn_name'])) $cachedCn++;
-        unset($c['id']);
-    }
-    unset($c);
-    if (count($cached) >= 5 && $cachedCn >= max(1, count($cached) * 0.6)) {
-        // 缓存命中率够高，直接返回
-        ok_response(['rows' => $cached, 'source' => 'cache', 'q' => $q, 'translated' => $cachedCn]);
-        exit;
+    // 0) 检测中文 → 翻译为英文（标签超市只支持在线，所以中文必须先转英文）
+    $fromCn = null;
+    $toEn = null;
+    $translateSource = null;
+    if (preg_match('/[\x{4e00}-\x{9fff}]/u', $q)) {
+        // 0.1) 优先 TagDict 反向查表（500+ 词，秒回，比 MyMemory 准）
+        $dictHits = \NaiStudio\TagDict::lookupReverse($q);
+        if (!empty($dictHits)) {
+            // 用第一个英文 tag 做主搜，其他用于"相关推荐"提示
+            $toEn = $dictHits[0];
+            $translateSource = 'tagdict';
+        } else {
+            // 0.2) fallback MyMemory / LibreTranslate / Google
+            $tr = Translator::zhToEn($q);
+            if ($tr === null) {
+                ok_response([
+                    'rows' => [],
+                    'source' => 'translate_fail',
+                    'q' => $q,
+                    'translated' => 0,
+                    'from_cn' => $q,
+                    'to_en' => null,
+                    'warning' => '中文翻译失败：' . $q . '（可手动输入英文 tag）',
+                ]);
+                exit;
+            }
+            $toEn = $tr['en'];
+            $translateSource = $tr['source'];
+        }
+        $fromCn = $q;
+        $searchQ = str_replace(' ', '_', $toEn);
+    } else {
+        $searchQ = $q;
     }
 
-    // 2) 在线拉取
-    $url = 'https://danbooru.donmai.us/tags.json?search[name_matches]=' . urlencode($q) . '&limit=' . ($limit * 2);
-    $data = dbFetch($url);
-    if ($data === null) {
+    // 1) 在线拉取 Danbooru（中文→英文 后用前缀模糊搜索）
+    //    策略：精确 → 前缀 → 包含，三档合并去重
+    $urls = [
+        // 精确匹配：name=long_hair（Danbooru 的精确查询）
+        'https://danbooru.donmai.us/tags.json?search[name]=' . urlencode($searchQ) . '&limit=5',
+        // 前缀匹配：name_matches=long_hair*
+        'https://danbooru.donmai.us/tags.json?search[name_matches]=' . urlencode($searchQ . '*') . '&limit=' . $limit,
+        // 包含匹配：name_matches=*long_hair*（兜底）
+        'https://danbooru.donmai.us/tags.json?search[name_matches]=' . urlencode('*' . $searchQ . '*') . '&limit=' . $limit,
+    ];
+    $seen = [];
+    $data = [];
+    foreach ($urls as $u) {
+        $batch = dbFetch($u);
+        if ($batch === null) continue;
+        foreach ($batch as $t) {
+            $name = (string)($t['name'] ?? '');
+            if ($name === '' || isset($seen[$name])) continue;
+            $seen[$name] = true;
+            $data[] = $t;
+        }
+    }
+    if (empty($data)) {
         ok_response([
-            'rows' => $cached,
-            'source' => 'cache_fallback',
+            'rows' => [],
+            'source' => 'danbooru_offline',
             'q' => $q,
-            'translated' => $cachedCn,
-            'warning' => 'Danbooru offline（已用本地缓存）',
+            'translated' => 0,
+            'from_cn' => $fromCn,
+            'to_en' => $toEn,
+            'translate_source' => $translateSource,
+            'warning' => 'Danbooru 不可达（请检查网络/代理）',
         ]);
         exit;
     }
 
-    // 3) 合并：在线 + 已缓存的；入库 + 翻译
-    // 按 post_count 降序（Danbooru 默认按创建时间，不靠谱）
+    // 2) 按 post_count 降序（Danbooru 默认按 created_at，不靠谱）
     usort($data, fn($a, $b) => (int)($b['post_count'] <=> (int)$a['post_count']));
     $data = array_slice($data, 0, $limit);
 
+    // 3) 入库 + 翻译
     $rowsOut = [];
     $translatedThisCall = 0;
     foreach ($data as $t) {
         $name = (string)($t['name'] ?? '');
         if ($name === '') continue;
-        // 查 DB 是否已有翻译
         $existing = Db::fetchOne("SELECT id, cn_name, translated_at, example_image_url FROM danbooru_tag_cache WHERE name = ?", [$name]);
         $cnName = $existing['cn_name'] ?? null;
         $needsTranslate = !$cnName || (strtotime($existing['translated_at'] ?? '1970-01-01') < time() - 86400 * 30);
@@ -128,7 +164,7 @@ if ($action === 'tag') {
             }
         }
 
-        // 翻译：优先内置字典（秒回，不调用 API），否则调 MyMemory
+        // 翻译：优先内置字典（秒回），否则调 en→zh 翻译
         if ($needsTranslate && $rowId) {
             $builtin = \NaiStudio\TagDict::lookup($name);
             if ($builtin !== null) {
@@ -156,18 +192,15 @@ if ($action === 'tag') {
         ];
     }
 
-    // 把剩余未翻译的缓存行也补进去
-    foreach ($cached as $c) {
-        $exists = false;
-        foreach ($rowsOut as $r) { if ($r['name'] === $c['name']) { $exists = true; break; } }
-        if (!$exists) $rowsOut[] = $c;
-    }
-
     ok_response([
         'rows' => $rowsOut,
         'source' => 'danbooru',
         'q' => $q,
+        'search_q' => $searchQ,
         'translated' => $translatedThisCall,
+        'from_cn' => $fromCn,
+        'to_en' => $toEn,
+        'translate_source' => $translateSource,
     ]);
     exit;
 }

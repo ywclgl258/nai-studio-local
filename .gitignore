@@ -22,6 +22,18 @@ storage/logs/
 # 截图（本地开发用，不进版本库）
 storage/screenshots/
 
+# 标签预览图（856+ 个 JPEG，体积大，运行时按需生成）
+storage/tag-previews/
+
+# SQLite 数据库文件（含用户加密 API key + 全部运行时数据）
+# schema 在 data/schema_sqlite.sql 跟踪，DB 文件不进版本库
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.db.old-*
+# 备份（mysqldump / 自动备份产物）
+data/backups/
+
 # === 敏感信息（防御性）===
 .env
 .env.local

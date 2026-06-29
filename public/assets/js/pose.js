@@ -16,7 +16,6 @@ import { api } from './api.js';
 import { toast } from './toast.js';
 import { saveLocal } from './storage.js';
 import { openPresetSave } from './preset-modal.js';
-import { openPresetManager } from './settings.js';
 
 let _els = {};
 
@@ -95,6 +94,13 @@ function loadPreset(p) {
     toast(`已载入：${p.name}`, { type: 'success' });
 }
 
+function togglePresetPanel() {
+    if (!_els.panel) return;
+    const willShow = _els.panel.classList.contains('hidden');
+    _els.panel.classList.toggle('hidden', !willShow);
+    if (willShow) loadPresets();
+}
+
 async function loadPresets() {
     try {
         const r = await api.listPosePresets({ per_page: 100 });
@@ -138,6 +144,7 @@ export function initPose() {
         presetSelect:  document.getElementById('posePresetSelect'),
         presetList:    document.getElementById('posePresetList'),
         manageBtn:     document.getElementById('posePresetManageBtn'),
+        panel:         document.getElementById('posePresetPanel'),
     };
     if (!_els.input) return;
 
@@ -156,9 +163,7 @@ export function initPose() {
         if (p) loadPreset(p);
         e.target.value = '';
     });
-    _els.manageBtn?.addEventListener('click', () => {
-        openPresetManager();
-    });
+    _els.manageBtn?.addEventListener('click', togglePresetPanel);
 
     loadPresets();
 }

@@ -57,10 +57,14 @@ export const api = {
     // Settings
     getSettings:    () => request('GET', '/api/settings.php'),
     updateSettings: (patch) => request('POST', '/api/settings.php', { body: patch }),
+    getAiConfig:    () => request('GET', '/api/settings_ai.php'),
+    saveAiConfig:   (patch) => request('POST', '/api/settings_ai.php', { body: patch }),
+    testAi:         () => request('GET', '/api/settings_ai.php?action=test'),
 
     // Tags
     tagCategories:  () => request('GET', '/api/tags.php?action=categories'),
     tagSearch:      (params) => request('GET', '/api/tags.php?action=search&' + new URLSearchParams(params)),
+    tagLocalSearch: (q, limit = 15) => request('GET', `/api/tags.php?action=local_search&q=${encodeURIComponent(q)}&limit=${limit}`),
     tagPopular:     (categoryId, limit = 60) => request('GET', `/api/tags.php?action=popular&category=${categoryId}&limit=${limit}`),
     tagLookup:      (names) => request('GET', '/api/tags.php?action=lookup&names=' + encodeURIComponent(names.join(','))),
     tagDetail:      (name) => request('GET', '/api/tags.php?action=detail&name=' + encodeURIComponent(name)),
@@ -85,7 +89,7 @@ export const api = {
     deletePosePreset: (id) => request('DELETE', '/api/pose_presets.php?id=' + id),
 
     // Danbooru (在线标签 + 示例图)
-    danbooruTag:  (q, limit = 24) => request('GET', `/api/danbooru.php?action=tag&q=${encodeURIComponent(q)}&limit=${limit}`),
+    danbooruTag:  (q, limit = 100) => request('GET', `/api/danbooru.php?action=tag&q=${encodeURIComponent(q)}&limit=${limit}`),
     danbooruPost: (q, limit = 24) => request('GET', `/api/danbooru.php?action=post&q=${encodeURIComponent(q)}&limit=${limit}`),
 
     // Generation
@@ -128,6 +132,41 @@ export const api = {
     importAllStart:  (params) => request('POST', '/api/admin/import-all-tags.php?action=start', params),
     importAllStop:   () => request('POST', '/api/admin/import-all-tags.php?action=stop'),
     clearProxy:     () => request('POST', '/api/proxy.php?action=clear'),
+
+    // Prompt decomposer
+    decompose:       (params) => request('POST', '/api/decompose.php?action=classify', { body: params }),
+    decomposeSample: () => request('GET',  '/api/decompose.php?action=sample'),
+    decomposeAdvise: (params) => request('POST', '/api/decompose.php?action=advise', { body: params }),
+    testLocalTranslate: () => request('GET', '/api/decompose.php?action=test_translate'),
+    lookupTag:       (q) => request('GET',  '/api/decompose.php?action=lookup&q=' + encodeURIComponent(q)),
+
+    // Artist library
+    artistList:        (params) => request('GET',  '/api/artists.php?action=list&' + new URLSearchParams(params || {})),
+    artistDetail:      (id) => request('GET',  '/api/artists.php?action=detail&id=' + id),
+    artistSearch:      (q) => request('GET',  '/api/artists.php?action=lookup&q=' + encodeURIComponent(q)),
+    artistCreate:      (data) => request('POST', '/api/artists.php?action=create', { body: data }),
+    artistUpdate:      (data) => request('POST', '/api/artists.php?action=update', { body: data }),
+    artistDelete:      (id) => request('POST', '/api/artists.php?action=delete', { body: { id } }),
+    artistAutocomplete: (data) => request('POST', '/api/artists.php?action=autocomplete', { body: data }),
+    artistFetch:       (data) => request('POST', '/api/artists.php?action=fetch', { body: data }),
+    artistCategories:  () => request('GET',  '/api/artists.php?action=categories'),
+    artistDanbooruSearch: (q, limit = 24) => request('GET', `/api/artists.php?action=danbooru_search&q=${encodeURIComponent(q)}&limit=${limit}`),
+    artistCategoryCreate: (data) => request('POST', '/api/artists.php?action=category_create', { body: data }),
+    artistCategoryDelete: (id) => request('POST', '/api/artists.php?action=category_delete', { body: { id } }),
+
+    // Artist presets
+    presetList:        () => request('GET',  '/api/artist_presets.php?action=list'),
+    presetDetail:      (id) => request('GET',  '/api/artist_presets.php?action=detail&id=' + id),
+    presetCreate:      (data) => request('POST', '/api/artist_presets.php?action=create', { body: data }),
+    presetUpdate:      (data) => request('POST', '/api/artist_presets.php?action=update', { body: data }),
+    presetDelete:      (id) => request('POST', '/api/artist_presets.php?action=delete', { body: { id } }),
+    presetUse:         (id) => request('POST', '/api/artist_presets.php?action=use', { body: { id } }),
+
+    // AI advisor (DeepSeek)
+    aiAnalyze:      (data) => request('POST', '/api/ai_analyze.php?action=analyze', { body: data }),
+    aiTranslate:    (texts) => request('POST', '/api/ai_analyze.php?action=translate', { body: { texts } }),
+    aiExpand:       (description, model) => request('POST', '/api/ai_analyze.php?action=expand', { body: { description, model } }),
+    aiCompose:      (history, model) => request('POST', '/api/ai_analyze.php?action=compose', { body: { history, model: model || 'curated' } }),
 };
 
 export { ApiError };
