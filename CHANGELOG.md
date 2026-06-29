@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-29
+
+### ✨ Features
+- **主提示词框顶部加 inline 预设快捷栏**：下拉 + 保存按钮，1 步载入（不再要点齿轮→浮窗→预设 tab 三步）
+- **预设弹窗用 `preset-modal.js` 替代丑的 `prompt()`**：支持自定义名称 + 收藏 toggle
+- **收藏预设排前面**：下拉里 ★ 标记 + 排序优先
+- **gitignore 加 `storage/screenshots/`**：本地截图不进版本库
+- **CSS 版本 bump → v=103**
+
+## [1.0.0] - 2026-06-28
+
 ### 🎯 Planned (from Roadmap)
 - 小图无限模式（自动选 NAI unlimited 尺寸 + 间隔默认 0）
 - 今日已生图统计
