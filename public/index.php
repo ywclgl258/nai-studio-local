@@ -62,7 +62,8 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
             apiKeyPresent: <?= $apiKeyPresent ? 'true' : 'false' ?>,
             ucPresets: <?= json_encode(config('uc_presets'), JSON_UNESCAPED_UNICODE) ?>,
             csrfToken: <?= json_encode(session_id() ?: '') ?>,
-            version: '1.0.0',
+            // 版本号：从仓库根的 VERSION 文件读（避免硬编码、tag 后忘了改）
+            version: <?= json_encode(trim(@file_get_contents(__DIR__ . '/../VERSION') ?: '1.0.0')) ?>,
         };
     </script>
 </head>
