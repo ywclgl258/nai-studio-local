@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-29
+
+### 🐛 Bug Fixes
+- **三个预设类别视觉上搞混了**：主提示词/角色/姿势的 select 都叫"— 预设 —"，且选项格式一样
+  - 修法：每个 preset row 加**颜色徽章**（📋 提示词=紫 / 👤 角色=蓝 / 🧍 姿势=青）+ **左边色条**对齐 tab 主题色
+  - placeholder 明确区分：`— 提示词预设 —` / `— 角色预设 —` / `— 姿势预设 —`
+  - 注意：三个 API/表/数据本来就**没混**（`/api/prompts.php` / `/api/character_presets.php` / `/api/pose_presets.php`），修的是**UI 可读性**
+
 ## [1.0.1] - 2026-06-29
 
 ### ✨ Features

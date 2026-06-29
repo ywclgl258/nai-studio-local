@@ -47,12 +47,12 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=100">
     <link rel="icon" type="image/x-icon" href="favicon.ico?v=100">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=100">
-    <link rel="stylesheet" href="assets/css/main.css?v=103">
-    <link rel="stylesheet" href="assets/css/components.css?v=103">
-    <link rel="stylesheet" href="assets/css/tag-picker.css?v=103">
-    <link rel="stylesheet" href="assets/css/gallery.css?v=103">
-    <link rel="stylesheet" href="assets/css/mask-editor.css?v=103">
-    <link rel="stylesheet" href="assets/css/themes.css?v=103">
+    <link rel="stylesheet" href="assets/css/main.css?v=104">
+    <link rel="stylesheet" href="assets/css/components.css?v=104">
+    <link rel="stylesheet" href="assets/css/tag-picker.css?v=104">
+    <link rel="stylesheet" href="assets/css/gallery.css?v=104">
+    <link rel="stylesheet" href="assets/css/mask-editor.css?v=104">
+    <link rel="stylesheet" href="assets/css/themes.css?v=104">
     <script>
         // Boot-time data for the SPA, no extra fetch needed
         window.__NAI_BOOT__ = {
@@ -172,12 +172,12 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                     </button>
                 </div>
                 <!-- 主提示词预设快捷栏（1 步载入，不用开浮窗） -->
-                <div class="prompt-preset-row" id="promptPresetRow">
-                    <svg class="prompt-preset-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-2.8-2.8L15 7"/></svg>
-                    <select class="preset-select" id="promptPresetQuickSelect" title="载入预设（同时设置主+负面+模型）">
-                        <option value="">— 预设 —</option>
+                <div class="prompt-preset-row preset-row-kind-prompt" id="promptPresetRow" data-kind="prompt">
+                    <span class="preset-kind-badge" data-kind="prompt" title="提示词预设">📋 提示词</span>
+                    <select class="preset-select" id="promptPresetQuickSelect" title="载入提示词预设（同时设置主+负面+模型）">
+                        <option value="">— 提示词预设 —</option>
                     </select>
-                    <button class="ghost-button small" id="promptPresetQuickSaveBtn" title="把当前主+负面+模型保存为预设">
+                    <button class="ghost-button small" id="promptPresetQuickSaveBtn" title="把当前主+负面+模型保存为提示词预设">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z"/></svg>
                         <span>保存</span>
                     </button>
@@ -202,13 +202,14 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                             添加角色
                         </button>
                     </div>
-                    <div class="pose-action-row">
+                    <div class="pose-action-row preset-row-kind-character" data-kind="character">
+                        <span class="preset-kind-badge" data-kind="character" title="角色预设">👤 角色</span>
                         <button class="link-button" id="characterSavePresetBtn" title="把当前所有角色提示词存为预设">
                             <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
                             保存为预设
                         </button>
-                        <select class="preset-select" id="characterPresetSelect" title="选择预设载入">
-                            <option value="">— 预设 —</option>
+                        <select class="preset-select" id="characterPresetSelect" title="选择角色预设载入">
+                            <option value="">— 角色预设 —</option>
                         </select>
                         <button class="icon-button small ghost" id="characterPresetManageBtn" title="管理预设（收藏/删除）">
                             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
@@ -222,13 +223,14 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 <div class="prompt-editor hidden" id="poseEditor">
                     <p class="pose-hint-text">默认追加到主提示词末尾 · 可保存为预设方便一键载入</p>
                     <textarea id="poseInput" class="prompt-input pose-input" rows="3" spellcheck="false" placeholder="例：standing, hands at sides, looking at viewer, ..."></textarea>
-                    <div class="pose-action-row">
+                    <div class="pose-action-row preset-row-kind-pose" data-kind="pose">
+                        <span class="preset-kind-badge" data-kind="pose" title="姿势预设">🧍 姿势</span>
                         <button class="link-button" id="poseSavePresetBtn" title="把当前姿势提示词存为预设">
                             <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
                             保存为预设
                         </button>
-                        <select class="preset-select" id="posePresetSelect" title="选择预设载入">
-                            <option value="">— 预设 —</option>
+                        <select class="preset-select" id="posePresetSelect" title="选择姿势预设载入">
+                            <option value="">— 姿势预设 —</option>
                         </select>
                         <button class="icon-button small ghost" id="posePresetManageBtn" title="打开设置 → 预设 tab 管理收藏 / 删除">
                             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
@@ -1038,6 +1040,6 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <div class="toast-stack" id="toastStack"></div>
 
     <!-- Scripts -->
-    <script type="module" src="assets/js/app.js?v=103"></script>
+    <script type="module" src="assets/js/app.js?v=104"></script>
 </body>
 </html>

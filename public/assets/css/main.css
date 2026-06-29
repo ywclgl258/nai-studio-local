@@ -433,6 +433,33 @@ code {
 .prompt-preset-icon { color: var(--text-muted); flex-shrink: 0; }
 .prompt-preset-row .ghost-button { padding: 4px 10px; font-size: 11px; }
 
+/* 预设类别徽章（让三个 preset row 一眼能区分） */
+.preset-kind-badge {
+    display: inline-flex; align-items: center;
+    flex-shrink: 0;
+    font-size: 10px; font-weight: 500;
+    padding: 3px 7px; border-radius: 10px;
+    line-height: 1;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+.preset-kind-badge[data-kind="prompt"] {
+    color: #c084fc; background: rgba(168, 85, 247, 0.12);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+.preset-kind-badge[data-kind="character"] {
+    color: #60a5fa; background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.3);
+}
+.preset-kind-badge[data-kind="pose"] {
+    color: #34d399; background: rgba(52, 211, 153, 0.12);
+    border-color: rgba(52, 211, 153, 0.3);
+}
+/* row 整体加左边色条，让它跟对应 tab 视觉一致 */
+.preset-row-kind-prompt    { border-left: 2px solid rgba(168, 85, 247, 0.4); padding-left: 6px; }
+.preset-row-kind-character { border-left: 2px solid rgba(96, 165, 250, 0.4); padding-left: 6px; }
+.preset-row-kind-pose      { border-left: 2px solid rgba(52, 211, 153, 0.4); padding-left: 6px; }
+
 .prompt-editor {
     position: relative;
     background: var(--bg);

@@ -33,7 +33,7 @@ function renderPresets() {
     // 填充下拉选单
     if (select) {
         const current = select.value;
-        select.innerHTML = '<option value="">— 预设 —</option>';
+        select.innerHTML = '<option value="">— 角色预设 —</option>';
         for (const p of presets) {
             const opt = document.createElement('option');
             opt.value = String(p.id);

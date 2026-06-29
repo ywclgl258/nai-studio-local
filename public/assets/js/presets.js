@@ -39,8 +39,8 @@ function renderPresets() {
         }
         if (current && presets.some(p => String(p.id) === current)) sel.value = current;
     };
-    fillSelect(_els.presetSelect, '— 选择预设载入 —');
-    fillSelect(_els.quickSelect, '— 预设 —');
+    fillSelect(_els.presetSelect, '— 提示词预设 —');
+    fillSelect(_els.quickSelect, '— 提示词预设 —');
     // 2) 详细管理列表（折叠在 <details> 里，默认不展开）
     if (!_els.presetsList) return;
     _els.presetsList.innerHTML = '';
