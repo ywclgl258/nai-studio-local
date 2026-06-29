@@ -274,6 +274,9 @@ export function initActions() {
     // 全量 Danbooru 标签导入
     initImportAll();
 
+    // 标签示例图抓取（仿 tags.novelai.dev：构建时预下载）
+    initFetchImg();
+
     // Initial status check + auto-poll every 30s while modal is open
     refreshStatus();
 }
@@ -454,4 +457,97 @@ function pollImportAll() {
             }
         }
     }, 3000);
+}
+
+// ===== 抓取标签示例图（SSE 流式，仿 tags.novelai.dev 预下载） =====
+let _fetchImgES = null;
+
+function initFetchImg() {
+    const btnStart = document.getElementById('actionFetchImg');
+    const btnStop  = document.getElementById('actionStopFetchImg');
+    if (!btnStart) return;
+
+    // 首次进入显示覆盖率
+    refreshFetchImgCoverage();
+
+    btnStart.addEventListener('click', () => {
+        const limit = parseInt(document.getElementById('fetchImgLimit')?.value || '500');
+        if (!confirm(`启动后会从 Danbooru 抓 ${limit} 张标签示例图存到本地 storage/tag-previews/。\n抓图后无需 JS 状态机，标签超市直接显示预览。\n\n预计耗时：${Math.ceil(limit / 40)} 分钟\n\n确定继续？`)) return;
+
+        startFetchImg(limit);
+    });
+
+    btnStop.addEventListener('click', () => {
+        if (_fetchImgES) {
+            _fetchImgES.close();
+            _fetchImgES = null;
+            toast('已停止抓图', { type: 'warning' });
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+        }
+    });
+}
+
+async function refreshFetchImgCoverage() {
+    const el = document.getElementById('fetchImgCoverage');
+    if (!el) return;
+    try {
+        const r = await api.fetchImgStats();
+        el.innerHTML = `📊 当前 <strong>${r.have}</strong>/${r.total} 有图（${r.coverage}%）· 缺 <strong>${r.missing}</strong>`;
+    } catch (e) {
+        el.textContent = '查询失败: ' + e.message;
+    }
+}
+
+function startFetchImg(limit) {
+    const btnStart = document.getElementById('actionFetchImg');
+    const btnStop  = document.getElementById('actionStopFetchImg');
+    const el       = document.getElementById('fetchImgProgress');
+    const fill     = document.getElementById('fetchImgBarFill');
+
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+    fill.style.width = '0%';
+    el.innerHTML = '⏳ 启动中...';
+
+    if (_fetchImgES) _fetchImgES.close();
+    _fetchImgES = new EventSource(api.fetchImgStart(limit));
+
+    let lastMsg = '';
+    _fetchImgES.onmessage = (e) => {
+        try {
+            const d = JSON.parse(e.data);
+            if (d.stage === 'start') {
+                el.innerHTML = `📋 共 <strong>${d.total}</strong> 个待抓（limit=${d.limit}）`;
+            } else if (d.stage === 'progress') {
+                const pct = d.total > 0 ? (d.index / d.total * 100) : 0;
+                fill.style.width = pct.toFixed(1) + '%';
+                const icon = { ok: '✅', fail: '❌', noPosts: '·', skip: '⏭' }[d.status] || '?';
+                el.innerHTML = `${icon} ${d.index}/${d.total} · ${d.name} · 累计 ✅${d.ok} ⏭${d.skip} ·${d.noPosts} ❌${d.fail} · ${d.elapsed}s`;
+            } else if (d.stage === 'done') {
+                el.innerHTML = `🎉 完成！本次抓 ${d.ok} 成功 · ${d.fail} 失败 · ${d.noPosts} 无 post · ${d.skip} 已存在 · 用时 ${d.elapsed}s · 全局覆盖率 <strong>${d.coverage}%</strong>（${d.global.have}/${d.global.total}）`;
+                fill.style.width = '100%';
+                btnStart.disabled = false;
+                btnStop.disabled = true;
+                _fetchImgES.close();
+                _fetchImgES = null;
+                toast(`🎉 抓图完成，全局覆盖率 ${d.coverage}%`, { type: 'success', duration: 5000 });
+                refreshFetchImgCoverage();
+            }
+        } catch (err) {
+            // ignore parse errors
+        }
+    };
+
+    _fetchImgES.onerror = (e) => {
+        if (_fetchImgES && _fetchImgES.readyState === EventSource.CLOSED) {
+            // 正常关闭
+            return;
+        }
+        el.innerHTML = '❌ 连接出错，已中断';
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+        if (_fetchImgES) _fetchImgES.close();
+        _fetchImgES = null;
+    };
 }

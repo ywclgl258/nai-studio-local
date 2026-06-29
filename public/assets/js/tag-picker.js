@@ -28,6 +28,16 @@ const _state = {
     localLoading: false,
     cart: [],              // [{ name, cn_name, category }]
     activeCat: 'all',      // 'all' | 'local' | 'online' | '0' | '1' | '3' | '4' | '5'
+
+    // ===== 本地缓存 tab 状态 =====
+    activeTab: 'search',       // 'search' | 'local'
+    localTagsAll: [],          // 已加载的本地缓存 tag 列表
+    localPage: 0,              // 当前加载页
+    localPerPage: 60,
+    localTotal: 0,             // 服务端返回的总数
+    localHasMore: false,
+    localLoadingMore: false,   // 防止重复触发
+    localFilters: { category: '', has_image: '', sort: 'popular', q: '' },
 };
 let _els = {};
 
@@ -169,7 +179,6 @@ function mergeAndRender() {
     _state.tags = merged;
     updateCategoryCounts();
     renderTags();
-    if (_state.tags.length > 0) lazyLoadExamples(_state.tags);
 }
 
 const debouncedSearchLocal = debounce(searchLocal, 150);
@@ -191,24 +200,20 @@ function onInput() {
     }
 }
 
-async function lazyLoadExamples(tags) {
-    for (const t of tags) {
-        if (t.example_url || t.example_image_url) continue;
-        try {
-            const r = await api.danbooruPost(t.name, 1);
-            const rows = r.rows || [];
-            if (rows.length > 0) {
-                t.example_url = rows[0].preview_url;
-                updateCardImage(t.name, t.example_url);
-            }
-        } catch {}
-    }
-}
+/**
+ * 静态图片加载（仿 wfjsw/tags.novelai.dev）
+ *
+ * 策略：图片已由后端预生成存到 /storage/tag-previews/<hash>/<name>.jpg
+ *       前端用纯静态 <img loading="lazy"> + onerror 占位符
+ *
+ * - 没有复杂的并发池 / 状态机
+ * - 不实时调 Danbooru（图片已离线）
+ * - 需要补全时：设置页点"批量补全图片"按钮 → tools/fetch_all_tag_images.php
+ */
 
-function updateCardImage(name, url) {
-    if (!url) return;
-    const card = _els.body.querySelector(`[data-name="${CSS.escape(name)}"] .db-img`);
-    if (card) card.style.backgroundImage = `url('${url}')`;
+// 兼容：返回 tag 的图片 URL
+function getImageUrl(tag) {
+    return tag.example_image_url || tag.example_url || '';
 }
 
 // =================== 类别计数 + 筛选 ===================
@@ -437,25 +442,50 @@ function renderTags() {
     }
 }
 
-function buildCard(tag) {
+function buildCard(tag, opts = {}) {
     const card = document.createElement('div');
     card.className = 'tag-card-danbooru' + (isInCart(tag.name) ? ' selected' : '');
     card.dataset.name = tag.name;
-    const catName = DB_CAT_BADGE[tag.category] || '';
+    // category 兼容：tags 表用 category_name_cn，danbooru 表用 category (0/1/3/4/5)
+    const catName = tag.category_name_cn || DB_CAT_BADGE[tag.category] || '';
     const cn = tag.cn_name ? `<div class="db-cn">${escapeHtml(tag.cn_name)}</div>` : '';
     const inCart = isInCart(tag.name);
+    const imgUrl = getImageUrl(tag);
+
+    // 纯静态 <img>：有图就显示，没图就让 :empty::before 显示 ? 占位
+    // 0 JS 状态机 / 0 异步抓取 / 0 并发池
+    // 想补全图 → 设置页点按钮调后端 batch API / 或本地缓存 tab 点单卡「拉取」按钮
+    const fetchBtn = (opts.showFetchBtn && !imgUrl)
+        ? `<button class="db-fetch-btn" data-fetch="${escapeHtml(tag.name)}" title="拉取 ${escapeHtml(tag.name)} 的预览图">📥 拉取</button>`
+        : '';
+
     card.innerHTML = `
-        <div class="db-img" ${tag.example_url || tag.example_image_url ? `style="background-image:url('${tag.example_url || tag.example_image_url}')"` : ''}></div>
+        <div class="db-img">
+            ${imgUrl
+                ? `<img class="db-img-el" src="${escapeHtml(imgUrl)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="" onerror="this.remove();">`
+                : ''}
+        </div>
         <div class="db-count">${formatCount(tag.post_count || 0)}</div>
         ${catName ? `<div class="db-cat">${escapeHtml(catName)}</div>` : ''}
         ${inCart ? `<div class="db-cart-mark" title="已在购物车">🛒</div>` : ''}
+        ${fetchBtn}
         <div class="db-info">
             <div class="db-name"></div>
             ${cn}
         </div>
     `;
     card.querySelector('.db-name').textContent = tag.name;
-    // 点击 = toggle 加入/移出购物车
+
+    // 「拉取预览」按钮单独绑定（不冒泡到 card 点击）
+    const fetchBtnEl = card.querySelector('.db-fetch-btn');
+    if (fetchBtnEl) {
+        fetchBtnEl.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await fetchOneImageForCard(fetchBtnEl, tag);
+        });
+    }
+
+    // 点击卡片 = toggle 加入/移出购物车
     card.addEventListener('click', () => {
         const wasIn = isInCart(tag.name);
         toggleCart(tag);
@@ -464,13 +494,63 @@ function buildCard(tag) {
     return card;
 }
 
+/**
+ * 单 tag 拉取预览图（仿 wfjsw：构建时预生成 → 运行时纯静态）
+ * 走 /api/tag_image.php?action=fetch — 本地有直接回，没有后端调 Danbooru 拉 + 存 + 写 DB
+ */
+async function fetchOneImageForCard(btn, tag) {
+    btn.disabled = true;
+    btn.textContent = '⏳ 拉取中';
+    try {
+        const r = await api.tagImageFetch(tag.name);
+        if (r.ok && r.url) {
+            // 1. 把 img 注入到 db-img
+            const card = btn.closest('.tag-card-danbooru');
+            const wrap = card?.querySelector('.db-img');
+            if (wrap && !wrap.querySelector('img')) {
+                const img = document.createElement('img');
+                img.className = 'db-img-el';
+                img.src = r.url;
+                img.loading = 'lazy';
+                img.decoding = 'async';
+                img.referrerPolicy = 'no-referrer';
+                img.alt = '';
+                img.onerror = () => img.remove();
+                wrap.appendChild(img);
+            }
+            // 2. 隐藏按钮
+            btn.classList.add('fetched');
+            btn.textContent = '✅ 已拉取';
+            setTimeout(() => btn.remove(), 1500);
+            // 3. 更新 tag 对象 + 全局 localTotal
+            tag.example_image_url = r.url;
+            _state.localHasImage = (_state.localHasImage || 0) + 1;
+            refreshLocalCount();
+            toast(`✅ 已拉取预览: ${tag.name}`, { type: 'success', duration: 1500 });
+        } else {
+            btn.textContent = '❌ 失败';
+            btn.disabled = false;
+            toast(`拉取失败: ${r.error || '未知'}`, { type: 'error', duration: 3000 });
+        }
+    } catch (e) {
+        btn.textContent = '❌ 网络错';
+        btn.disabled = false;
+        toast(`拉取出错: ${e.message}`, { type: 'error' });
+    }
+}
+
 // =================== Modal 控制 ===================
 function open() {
     if (_state.open) return;
     _state.open = true;
     _els.picker.classList.remove('hidden');
-    renderTags();
+    if (_state.activeTab === 'local' && _state.localTagsAll.length === 0) {
+        loadLocalPage(true);
+    } else {
+        renderTags();
+    }
     renderCart();
+    refreshLocalCount();
     setTimeout(() => _els.search.focus(), 50);
 }
 function close() {
@@ -478,6 +558,128 @@ function close() {
     _state.open = false;
     _els.picker.classList.add('hidden');
     _els.dropdown?.classList.add('hidden');
+}
+
+// =================== Tab 切换：搜索 / 本地缓存 ===================
+async function switchTab(tab) {
+    if (_state.activeTab === tab) return;
+    _state.activeTab = tab;
+
+    // 更新 tab 按钮视觉
+    _els.picker.querySelectorAll('.tag-picker-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+    });
+
+    if (tab === 'local') {
+        // 切到本地缓存：隐藏 sidebar + search wrap + translate bar + 显示 toolbar
+        _els.sidebar?.classList.add('hidden');
+        _els.searchWrap?.classList.add('hidden');
+        _els.translateBar?.classList.add('hidden');
+        _els.dropdown?.classList.add('hidden');
+        _els.localToolbar?.classList.remove('hidden');
+        if (_els.centerTitle) _els.centerTitle.textContent = '本地缓存';
+        if (_els.localRefresh) _els.localRefresh.classList.remove('hidden');
+        if (_state.localTagsAll.length === 0) {
+            await loadLocalPage(true);
+        } else {
+            renderLocal();
+        }
+        refreshLocalCount();
+    } else {
+        // 切到搜索：恢复 sidebar + search wrap + 隐藏 toolbar
+        _els.sidebar?.classList.remove('hidden');
+        _els.searchWrap?.classList.remove('hidden');
+        _els.localToolbar?.classList.add('hidden');
+        if (_els.centerTitle) _els.centerTitle.textContent = '在线搜索';
+        if (_els.localRefresh) _els.localRefresh.classList.add('hidden');
+        renderTags();
+        setTimeout(() => _els.search?.focus(), 50);
+    }
+}
+
+/**
+ * 加载本地缓存页（追加或重置）
+ */
+async function loadLocalPage(reset = false) {
+    if (_state.localLoadingMore) return;
+    _state.localLoadingMore = true;
+
+    if (reset) {
+        _state.localTagsAll = [];
+        _state.localPage = 0;
+        _state.localTotal = 0;
+        _state.localHasMore = false;
+        _els.body.innerHTML = '<div class="tag-picker-empty"><div class="empty-icon">⏳</div><div>加载本地缓存...</div></div>';
+    }
+
+    try {
+        const params = {
+            page: (_state.localPage || 0) + 1,
+            per_page: _state.localPerPage,
+            ..._state.localFilters,
+        };
+        // 空字符串 → 不传
+        Object.keys(params).forEach(k => {
+            if (params[k] === '' || params[k] == null) delete params[k];
+        });
+
+        const r = await api.tagLocalList(params);
+        _state.localTotal = r.total;
+        _state.localHasMore = r.has_more;
+        _state.localPage = r.page;
+        if (reset) {
+            _state.localTagsAll = r.rows;
+        } else {
+            _state.localTagsAll = _state.localTagsAll.concat(r.rows);
+        }
+        renderLocal();
+    } catch (e) {
+        toast('本地缓存加载失败: ' + e.message, { type: 'error' });
+        _els.body.innerHTML = `<div class="tag-picker-empty"><div class="empty-icon">❌</div><div>加载失败</div><div class="empty-hint">${escapeHtml(e.message)}</div></div>`;
+    } finally {
+        _state.localLoadingMore = false;
+    }
+}
+
+function renderLocal() {
+    _els.body.innerHTML = '';
+    const tags = _state.localTagsAll;
+    if (_els.count) _els.count.textContent = String(tags.length);
+    if (_els.total) _els.total.textContent = formatCount(_state.localTotal);
+
+    if (tags.length === 0 && !_state.localLoadingMore) {
+        const el = document.createElement('div');
+        el.className = 'tag-picker-empty';
+        el.innerHTML = '<div class="empty-icon">📭</div><div>本地缓存没有匹配的标签</div><div class="empty-hint">试试别的筛选条件</div>';
+        _els.body.appendChild(el);
+        return;
+    }
+
+    // 用 fragment 批量 append
+    const frag = document.createDocumentFragment();
+    for (const tag of tags) frag.appendChild(buildCard(tag, { showFetchBtn: true }));
+    _els.body.appendChild(frag);
+
+    // 底部加载更多指示
+    if (_state.localHasMore) {
+        const more = document.createElement('div');
+        more.className = 'tag-picker-local-loadmore';
+        more.innerHTML = `<button class="ghost-button" id="tagPickerLoadMoreBtn">加载更多（${tags.length}/${_state.localTotal}）</button>`;
+        _els.body.appendChild(more);
+        more.querySelector('button').addEventListener('click', () => loadLocalPage(false));
+    }
+}
+
+/**
+ * 刷新本地缓存计数（用于 tab badge）
+ */
+async function refreshLocalCount() {
+    if (!_els.localCount) return;
+    try {
+        const r = await api.fetchImgStats();
+        _els.localCount.textContent = String(r.total);
+        _els.localCount.title = `${r.have}/${r.total} 有图（${r.coverage}%）`;
+    } catch {}
 }
 function onSearchKey(e) {
     if (e.key === 'Escape') {
@@ -500,7 +702,7 @@ export function initTagPicker() {
         closeBtn:       document.getElementById('tagPickerCloseBtn'),
         translateBar:   document.getElementById('tagPickerTranslateBar'),
         dropdown:       document.getElementById('tagPickerDropdown'),
-        // 新增：购物车
+        // 购物车
         cart:           document.getElementById('tagPickerCart'),
         cartList:       document.getElementById('tagPickerCartList'),
         cartBadge:      document.getElementById('tagPickerCartBadge'),
@@ -508,8 +710,16 @@ export function initTagPicker() {
         checkoutBtn:    document.getElementById('tagPickerCheckoutBtn'),
         cartClearBtn:   document.getElementById('tagPickerCartClearBtn'),
         footerCount:    document.getElementById('tagPickerFooterCount'),
-        // 新增：sidebar
+        // sidebar
         sidebar:        document.getElementById('tagPickerSidebar'),
+        searchWrap:     document.querySelector('.tag-picker-search-wrap'),
+        // 本地缓存 tab
+        localCount:     document.getElementById('tagPickerLocalCount'),
+        localToolbar:   document.getElementById('tagPickerLocalToolbar'),
+        localCategory:  document.getElementById('tagPickerLocalCategory'),
+        localHasImage:  document.getElementById('tagPickerLocalHasImage'),
+        localSort:      document.getElementById('tagPickerLocalSort'),
+        localRefresh:   document.getElementById('tagPickerLocalRefreshBtn'),
     };
     if (!_els.picker) return;
 
@@ -537,6 +747,35 @@ export function initTagPicker() {
         });
     }
 
+    // Tab 切换
+    _els.picker.querySelectorAll('.tag-picker-tab').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    // 本地缓存筛选条
+    const onFilterChange = () => {
+        _state.localFilters = {
+            category:  _els.localCategory?.value || '',
+            has_image: _els.localHasImage?.value || '',
+            sort:      _els.localSort?.value || 'popular',
+            q:         '',
+        };
+        loadLocalPage(true);
+    };
+    _els.localCategory?.addEventListener('change', onFilterChange);
+    _els.localHasImage?.addEventListener('change', onFilterChange);
+    _els.localSort?.addEventListener('change', onFilterChange);
+    _els.localRefresh?.addEventListener('click', () => loadLocalPage(true));
+
+    // 滚动到底自动加载更多
+    _els.body?.addEventListener('scroll', () => {
+        if (_state.activeTab !== 'local' || !_state.localHasMore || _state.localLoadingMore) return;
+        const scrollBottom = _els.body.scrollTop + _els.body.clientHeight;
+        if (scrollBottom >= _els.body.scrollHeight - 200) {
+            loadLocalPage(false);
+        }
+    });
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && _state.open) close();
         if (e.key === 't' && !e.ctrlKey && !e.metaKey && !_state.open) {
@@ -546,6 +785,7 @@ export function initTagPicker() {
         }
     });
 
+    // 默认 tab 是 search，渲染一次
     renderTags();
     renderCart();
 }

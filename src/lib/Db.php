@@ -17,6 +17,18 @@ namespace NaiStudio;
 use PDO;
 use PDOException;
 
+/**
+ * PDO 子类：hook prepare 自动应用 normalizeSql() shim
+ * 这样所有 Db::pdo()->prepare() 调用都能自动兼容 SQLite
+ * （即使绕过 Db::fetchAll/execute 直接用原生 PDO 也能兼容）
+ */
+class ShimmedPdo extends PDO {
+    #[\ReturnTypeWillChange]
+    public function prepare($query, $options = []) {
+        return parent::prepare(\NaiStudio\Db::normalizeSql($query), $options);
+    }
+}
+
 class Db {
     private static ?PDO $instance = null;
     private static ?string $driver = null;
@@ -71,16 +83,40 @@ class Db {
                 $i++;
                 continue;
             }
-            // NOW() → CURRENT_TIMESTAMP
-            if (substr($sql, $i, 4) === 'NOW(' && ($i + 4 >= $len || !ctype_alnum($sql[$i+4] ?? ''))) {
+            // NOW() → CURRENT_TIMESTAMP   （含括号的完整替换）
+            if (substr($sql, $i, 5) === 'NOW()' && ($i === 0 || !ctype_alnum($sql[$i-1] ?? ''))) {
                 $out .= 'CURRENT_TIMESTAMP';
-                $i += 4;
+                $i += 5;
                 continue;
             }
-            // LEFT( → substr(   （只匹配独立 LEFT(，单词边界）
+            // LEFT(s, n) → substr(s, 1, n)  （在第一个参数后插入 ", 1"）
             if (substr($sql, $i, 5) === 'LEFT(' && ($i === 0 || !ctype_alnum($sql[$i-1] ?? ''))) {
                 $out .= 'substr(';
                 $i += 5;
+                // 找到 LEFT 参数结束位置（即 ')'）
+                $depth = 1; $j = $i;
+                while ($j < $len && $depth > 0) {
+                    $c = $sql[$j];
+                    if ($c === '(') $depth++;
+                    elseif ($c === ')') $depth--;
+                    elseif ($c === "'" || $c === '"') {
+                        $j++;
+                        while ($j < $len && $sql[$j] !== $c) {
+                            if ($sql[$j] === '\\') $j++;
+                            $j++;
+                        }
+                    }
+                    $j++;
+                }
+                // $j 现在指向 ')'，把参数（不含 ')'）拿出，在第一个 ',' 后插入 " 1,"
+                $params = substr($sql, $i, $j - $i);
+                $comma = strpos($params, ',');
+                if ($comma !== false) {
+                    $out .= substr($params, 0, $comma + 1) . ' 1,' . substr($params, $comma + 1);
+                } else {
+                    $out .= $params . ', 1';  // fallback: LEFT(s) → substr(s, 1)
+                }
+                $i = $j;  // 跳过到 ')'
                 continue;
             }
             $out .= $ch;
@@ -102,7 +138,8 @@ class Db {
                     if (!is_dir($dir)) {
                         mkdir($dir, 0755, true);
                     }
-                    self::$instance = new PDO("sqlite:" . $path, null, null, [
+                    // 用我们的 hook 子类，让所有 ->prepare() 自动过 normalizeSql
+                    self::$instance = new ShimmedPdo("sqlite:" . $path, null, null, [
                         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                         PDO::ATTR_EMULATE_PREPARES   => false,
@@ -118,7 +155,7 @@ class Db {
                         'mysql:host=%s;port=%d;dbname=%s;charset=%s',
                         $mc['host'], $mc['port'], $mc['name'], $mc['charset']
                     );
-                    self::$instance = new PDO($dsn, $mc['user'], $mc['pass'], [
+                    self::$instance = new ShimmedPdo($dsn, $mc['user'], $mc['pass'], [
                         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                         PDO::ATTR_EMULATE_PREPARES   => false,

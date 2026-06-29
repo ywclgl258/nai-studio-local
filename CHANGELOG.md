@@ -11,6 +11,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-30
+
+> 🚀 **标签预览图全流程：构建时预生成 + 本地缓存 tab + 单 tag 手动拉取**
+> 解决"标签超市卡片没图"的核心痛点。运行时纯静态 `<img>`，零 JS 状态机。
+
+### 🖼 标签预览图预下载（仿 tags.novelai.dev）
+
+- **核心思路**：图片由后端构建时下载到本地 `storage/tag-previews/<hash>/<name>.jpg`，运行时纯静态 `<img loading="lazy">`，无 JS 状态机/无并发池/无异步抓图
+- **`tools/fetch_all_tag_images.php`** — CLI 批量预生成工具
+  - `php tools/fetch_all_tag_images.php 500` 跑 top 500
+  - 按 `post_count DESC` 排序抓热门
+  - Danbooru 礼貌限速（≈1.5s/张）≈ 40 张/分钟
+  - 本地已有 / DB 已同步 → 跳过；无 posts → 标记已尝试，避免反复请求
+- **`public/api/admin/fetch_all_images.php`** — HTTP 流式触发（SSE）
+  - `?action=stats` → 覆盖率查询
+  - `?action=run&limit=N` → 流式进度（`data: {"stage":"progress",...}`）
+- **设置页加「🚀 开始抓图」按钮**：直接触发 SSE，UI 实时显示 ✅ 成功 / ❌ 失败 / · 无 post / 进度条
+
+### 🆕 标签超市新增「本地缓存」tab
+
+- **顶部 tab 切换**：「🔍 在线搜索」/「💾 本地缓存」（带 tag 总数 badge）
+- **本地缓存 tab 功能**：
+  - 网格视图（同搜索 tab，但数据来自 `tags` 表的本地 DB）
+  - 分页加载（每页 60）+ 滚动到底自动加载更多
+  - 筛选条：分类（通用/画师/版权/角色/元/质量/风格/环境）/ 是否有图 / 排序（热门/最近/名字/随机）
+  - **每张卡片的「📥 拉取」按钮**（仅无图时显示）：点一下 → 后端调 Danbooru → 存本地 → 写 DB → 卡片立刻显示新图
+  - 拉取成功 → 按钮变绿 "✅ 已拉取"，1.5s 后消失
+  - 拉取失败（冷门 tag / 受限 tag）→ 按钮变红 "❌ 网络错"
+- **后端 API** `public/api/tags.php?action=local_list`：
+  - 支持分页 / category / has_image / q / sort
+  - JOIN `tag_categories` 表返回 `category_name_cn`，前端直接显示中文分类
+  - 返回 `{ rows, total, page, has_more }`
+
+### 🔧 重构与 bug 修复
+
+- **删除 `_imgPool` / `lazyLoadExamples` / `scheduleImageFetch` / `fetchOneImage`** —— 整个 JS 状态机（约 90 行）由纯静态 `<img>` 替代
+- **修 `tags.php?action=local_search` 的 JOIN bug**：原本查 `danbooru_tag_cache.example_image_url`（null），改为 `LEFT JOIN tags` + `COALESCE(t.example_image_url, d.example_image_url)`，让本地搜出来的 tag 也能显示图片
+- **`buildCard` 支持 `opts.showFetchBtn`** —— 单个 tag 拉取预览按钮，只在「本地缓存」tab 渲染
+- **新事件**：本地缓存 tab 滚动到底自动 `loadLocalPage(false)` 加载下一页
+- **ES module 缓存修复（重要）**：添加 `<script type="importmap">` 给所有 module 文件加 `?v=<filemtime>` 版本号，避免浏览器缓存旧版本模块（之前改 JS 改完不生效就是这个原因）
+
+### 📊 性能对比
+
+| 方案 | 运行时 | 抓图失败处理 | 用户体验 |
+|------|--------|------------|---------|
+| ~~JS 状态机并发池~~ | 每开 picker 重新拉 4 张 | 静默失败 / spinner 转不停 | 卡顿 + 缺图 |
+| **预下载 + 静态 img**（新） | 0 状态机 | 提前标灰 + 单 tag 手动补 | 流畅 + 自助补 |
+
+### 📁 新增/修改文件
+
+- 新增：`tools/fetch_all_tag_images.php`、`public/api/admin/fetch_all_images.php`、`public/api/tag_image.php`（之前 fetch 接口补充）
+- 修改：`public/api/tags.php`、`public/index.php`、`public/assets/js/{tag-picker,api,actions,app}.js`、`public/assets/css/tag-picker.css`、`src/lib/Db.php`
+- 数据库：`tags.example_image_url` 字段已有，无需迁移
+
+---
+
 ## [1.1.0] - 2026-06-29
 
 > 🎉 **重大版本：AI 全面接入 + 标签超市购物车化 + SQLite 独立数据库**

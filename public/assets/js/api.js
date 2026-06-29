@@ -65,6 +65,8 @@ export const api = {
     tagCategories:  () => request('GET', '/api/tags.php?action=categories'),
     tagSearch:      (params) => request('GET', '/api/tags.php?action=search&' + new URLSearchParams(params)),
     tagLocalSearch: (q, limit = 15) => request('GET', `/api/tags.php?action=local_search&q=${encodeURIComponent(q)}&limit=${limit}`),
+    tagLocalList: (params) => request('GET', `/api/tags.php?action=local_list&${new URLSearchParams(params || {})}`),
+    tagImageFetch: (name) => request('GET', `/api/tag_image.php?action=fetch&name=${encodeURIComponent(name)}`),
     tagPopular:     (categoryId, limit = 60) => request('GET', `/api/tags.php?action=popular&category=${categoryId}&limit=${limit}`),
     tagLookup:      (names) => request('GET', '/api/tags.php?action=lookup&names=' + encodeURIComponent(names.join(','))),
     tagDetail:      (name) => request('GET', '/api/tags.php?action=detail&name=' + encodeURIComponent(name)),
@@ -131,6 +133,9 @@ export const api = {
     importAllStatus: () => request('GET',  '/api/admin/import-all-tags.php?action=status'),
     importAllStart:  (params) => request('POST', '/api/admin/import-all-tags.php?action=start', params),
     importAllStop:   () => request('POST', '/api/admin/import-all-tags.php?action=stop'),
+    // 批量抓取标签示例图（SSE 流式）
+    fetchImgStats:   () => request('GET', '/api/admin/fetch_all_images.php?action=stats'),
+    fetchImgStart:   (limit) => `/nai-studio/api/admin/fetch_all_images.php?limit=${limit}`,
     clearProxy:     () => request('POST', '/api/proxy.php?action=clear'),
 
     // Prompt decomposer

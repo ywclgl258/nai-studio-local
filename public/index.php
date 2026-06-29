@@ -581,6 +581,15 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 <span>标签超市</span>
                 <span class="tag-picker-source-badge">🌐 在线 Danbooru</span>
             </div>
+            <!-- Tab 切换：搜索 / 本地缓存 -->
+            <div class="tag-picker-tabs" role="tablist">
+                <button class="tag-picker-tab active" data-tab="search" role="tab" title="在线搜索 Danbooru 标签">
+                    🔍 在线搜索
+                </button>
+                <button class="tag-picker-tab" data-tab="local" role="tab" title="浏览本地已缓存标签（含预览图）">
+                    💾 本地缓存 <span class="tag-picker-tab-count" id="tagPickerLocalCount">0</span>
+                </button>
+            </div>
             <div class="tag-picker-search-wrap">
                 <div class="tag-picker-search-row">
                     <svg class="tag-picker-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -651,6 +660,34 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                         <span id="tagPickerCount">0</span> 标签
                         <span class="tag-picker-divider">·</span>
                         <span id="tagPickerTotal">0</span> 累计
+                    </div>
+                    <!-- 本地缓存 tab 的筛选条（默认隐藏，切到本地缓存 tab 时显示） -->
+                    <div class="tag-picker-local-toolbar hidden" id="tagPickerLocalToolbar">
+                        <select class="tag-picker-local-filter" id="tagPickerLocalCategory" title="按分类筛选">
+                            <option value="">全部分类</option>
+                            <option value="29">通用</option>
+                            <option value="30">画师</option>
+                            <option value="31">版权</option>
+                            <option value="32">角色</option>
+                            <option value="33">元数据</option>
+                            <option value="34">质量</option>
+                            <option value="35">风格</option>
+                            <option value="36">环境</option>
+                        </select>
+                        <select class="tag-picker-local-filter" id="tagPickerLocalHasImage" title="按是否有预览图筛选">
+                            <option value="">全部</option>
+                            <option value="1">✅ 已有图</option>
+                            <option value="0">❌ 缺图</option>
+                        </select>
+                        <select class="tag-picker-local-filter" id="tagPickerLocalSort" title="排序方式">
+                            <option value="popular">热门 (post_count)</option>
+                            <option value="recent">最近抓图</option>
+                            <option value="name">名字 A-Z</option>
+                            <option value="random">随机</option>
+                        </select>
+                        <button class="icon-button ghost" id="tagPickerLocalRefreshBtn" title="刷新">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3.5-7.1M21 4v5h-5"/></svg>
+                        </button>
                     </div>
                 </div>
                 <div class="tag-picker-body" id="tagPickerBody"></div>
@@ -1019,6 +1056,30 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 <div class="mini-actions">
                     <button class="ghost-button" id="exportAllBtn">导出全部（JSON）</button>
                     <button class="danger-button" id="clearGalleryBtn">清空画廊</button>
+                </div>
+
+                <!-- 标签示例图补全（仿 tags.novelai.dev：构建时预下载） -->
+                <div class="action-section" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+                    <h4 style="margin:0 0 8px;font-size:13px">🖼 标签示例图补全</h4>
+                    <p style="margin:0 0 8px;font-size:11px;color:var(--text-muted);line-height:1.5">
+                        从 Danbooru 预下载热门标签示例图到本地，标签超市的卡片就能显示预览图。<br>
+                        <span id="fetchImgCoverage">未查询</span> · 抓图后无需 JS 状态机，纯静态 <code>&lt;img&gt;</code> 加载。
+                    </p>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+                        <label style="font-size:11px;display:flex;align-items:center;gap:4px">
+                            抓取数量：
+                            <input type="number" id="fetchImgLimit" value="500" min="10" max="10000" step="100" style="width:80px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px">
+                            (按 post_count 倒序抓热门)
+                        </label>
+                    </div>
+                    <div style="display:flex;gap:6px">
+                        <button class="primary-button" id="actionFetchImg" style="flex:1;padding:10px">🚀 开始抓图</button>
+                        <button class="ghost-button" id="actionStopFetchImg" style="padding:10px" disabled>停止</button>
+                    </div>
+                    <div id="fetchImgProgress" style="margin-top:10px;font-size:11px;color:var(--text-secondary);min-height:18px"></div>
+                    <div id="fetchImgBar" style="margin-top:6px;height:6px;background:var(--bg-elevated-2);border-radius:3px;overflow:hidden">
+                        <div id="fetchImgBarFill" style="height:100%;background:var(--accent);width:0%;transition:width .3s"></div>
+                    </div>
                 </div>
             </div>
             <div class="settings-pane hidden" data-pane="about">
@@ -1547,7 +1608,44 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 
     <div class="toast-stack" id="toastStack"></div>
 
+    <!-- Import map: 给所有 ES module 文件加版本号，避免浏览器缓存旧版本 -->
+    <script type="importmap">
+    {
+        "imports": {
+            "./assets/js/app.js": "./assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>",
+            "./assets/js/state.js": "./assets/js/state.js?v=<?= filemtime(__DIR__ . '/assets/js/state.js') ?>",
+            "./assets/js/storage.js": "./assets/js/storage.js?v=<?= filemtime(__DIR__ . '/assets/js/storage.js') ?>",
+            "./assets/js/api.js": "./assets/js/api.js?v=<?= filemtime(__DIR__ . '/assets/js/api.js') ?>",
+            "./assets/js/toast.js": "./assets/js/toast.js?v=<?= filemtime(__DIR__ . '/assets/js/toast.js') ?>",
+            "./assets/js/tag-picker.js": "./assets/js/tag-picker.js?v=<?= filemtime(__DIR__ . '/assets/js/tag-picker.js') ?>",
+            "./assets/js/actions.js": "./assets/js/actions.js?v=<?= filemtime(__DIR__ . '/assets/js/actions.js') ?>",
+            "./assets/js/panel.js": "./assets/js/panel.js?v=<?= filemtime(__DIR__ . '/assets/js/panel.js') ?>",
+            "./assets/js/prompt.js": "./assets/js/prompt.js?v=<?= filemtime(__DIR__ . '/assets/js/prompt.js') ?>",
+            "./assets/js/ai-settings.js": "./assets/js/ai-settings.js?v=<?= filemtime(__DIR__ . '/assets/js/ai-settings.js') ?>",
+            "./assets/js/ai-compose.js": "./assets/js/ai-compose.js?v=<?= filemtime(__DIR__ . '/assets/js/ai-compose.js') ?>",
+            "./assets/js/characters.js": "./assets/js/characters.js?v=<?= filemtime(__DIR__ . '/assets/js/characters.js') ?>",
+            "./assets/js/pose.js": "./assets/js/pose.js?v=<?= filemtime(__DIR__ . '/assets/js/pose.js') ?>",
+            "./assets/js/vibe.js": "./assets/js/vibe.js?v=<?= filemtime(__DIR__ . '/assets/js/vibe.js') ?>",
+            "./assets/js/precise.js": "./assets/js/precise.js?v=<?= filemtime(__DIR__ . '/assets/js/precise.js') ?>",
+            "./assets/js/base-image.js": "./assets/js/base-image.js?v=<?= filemtime(__DIR__ . '/assets/js/base-image.js') ?>",
+            "./assets/js/mask-editor.js": "./assets/js/mask-editor.js?v=<?= filemtime(__DIR__ . '/assets/js/mask-editor.js') ?>",
+            "./assets/js/gallery.js": "./assets/js/gallery.js?v=<?= filemtime(__DIR__ . '/assets/js/gallery.js') ?>",
+            "./assets/js/import.js": "./assets/js/import.js?v=<?= filemtime(__DIR__ . '/assets/js/import.js') ?>",
+            "./assets/js/director.js": "./assets/js/director.js?v=<?= filemtime(__DIR__ . '/assets/js/director.js') ?>",
+            "./assets/js/settings.js": "./assets/js/settings.js?v=<?= filemtime(__DIR__ . '/assets/js/settings.js') ?>",
+            "./assets/js/presets.js": "./assets/js/presets.js?v=<?= filemtime(__DIR__ . '/assets/js/presets.js') ?>",
+            "./assets/js/queue.js": "./assets/js/queue.js?v=<?= filemtime(__DIR__ . '/assets/js/queue.js') ?>",
+            "./assets/js/project-queue.js": "./assets/js/project-queue.js?v=<?= filemtime(__DIR__ . '/assets/js/project-queue.js') ?>",
+            "./assets/js/keyboard.js": "./assets/js/keyboard.js?v=<?= filemtime(__DIR__ . '/assets/js/keyboard.js') ?>",
+            "./assets/js/preset-modal.js": "./assets/js/preset-modal.js?v=<?= filemtime(__DIR__ . '/assets/js/preset-modal.js') ?>",
+            "./assets/js/decomposer.js": "./assets/js/decomposer.js?v=<?= filemtime(__DIR__ . '/assets/js/decomposer.js') ?>",
+            "./assets/js/artist_library.js": "./assets/js/artist_library.js?v=<?= filemtime(__DIR__ . '/assets/js/artist_library.js') ?>",
+            "./assets/js/generate-payload.js": "./assets/js/generate-payload.js?v=<?= filemtime(__DIR__ . '/assets/js/generate-payload.js') ?>"
+        }
+    }
+    </script>
+
     <!-- Scripts -->
-    <script type="module" src="assets/js/app.js?v=104"></script>
+    <script type="module" src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>"></script>
 </body>
 </html>

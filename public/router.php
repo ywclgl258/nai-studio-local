@@ -24,6 +24,34 @@ if (strpos($uri, '/nai-studio') === 0) {
 // 真实文件路径
 $file = __DIR__ . $uri;
 
+// /storage/... 特殊处理：项目根 storage/ 目录的图片（如 tag-previews）
+//   因为 PHP 内置 server 文档根是 public/，访问不到 storage/
+//   把 /storage/* 映射到 <project_root>/storage/*
+if (strpos($uri, '/storage/') === 0) {
+    $rootStorage = dirname(__DIR__) . $uri;  // D:\anima\nai-studio\storage\...
+    if (file_exists($rootStorage) && !is_dir($rootStorage)) {
+        $ext = strtolower(pathinfo($rootStorage, PATHINFO_EXTENSION));
+        $mime = [
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'gif'  => 'image/gif',
+            'webp' => 'image/webp',
+            'svg'  => 'image/svg+xml',
+        ];
+        if (isset($mime[$ext])) {
+            header('Content-Type: ' . $mime[$ext]);
+            header('Content-Length: ' . filesize($rootStorage));
+            header('Cache-Control: public, max-age=86400');
+            readfile($rootStorage);
+            exit;
+        }
+        readfile($rootStorage);
+        exit;
+    }
+    // 文件不存在：让 API 处理（见 api/tag_image.php?action=fetch）
+}
+
 // 静态文件（图片/css/js/字体等）：router 自己服务（不能用 return false，
 //   否则内置 server 会按原始 /nai-studio/... 找不到）
 //   但 .php 必须走 require，不能 readfile 源码
