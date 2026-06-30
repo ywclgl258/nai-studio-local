@@ -11,6 +11,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-30
+
+> 🌐 **本地缓存未翻译标签：再次翻译 + 手动纠正 + 批量翻译**
+> 把 25266 个 tag 里 25020 个未翻译的逐步翻译。字典优先 → MyMemory 兜底。
+
+### 🔤 翻译 API
+
+- **`POST /api/tags.php?action=translate_one`** — 单条重译
+  - 优先查 `TagDict`（500+ 内置字典命中秒回：1girl/1个女孩、long_hair/长发...）
+  - miss 走 `Translator::enToZh`（MyMemory API）
+  - 写回 `tags.cn_name` + `translated_at`，同步到 `danbooru_tag_cache`
+  - 跳过非英文（中文/特殊字符）→ 400 拒绝
+- **`POST /api/tags.php?action=manual_translate`** — 手动纠正
+  - 任意 `name` + `cn_name` 直接 SET 落库（覆盖自动翻译）
+- **`GET /api/tags.php?action=untranslated_list`** — 分页列出 cn_name 为空的 tag
+- **`local_list` 加 `has_cn` 筛选参数**：`?has_cn=0` 列出未翻译，`?has_cn=1` 列出已翻译
+
+### 🗄 数据库迁移
+
+- **`tools/_migrate_add_translated_at.php`** — 给 `tags` / `danbooru_tag_cache` 加 `translated_at DATETIME` 字段
+
+### 🎨 UI
+
+- **顶部 "🌐 批量翻译" 按钮**（橙红渐变）：自动扫 25020 个未翻译，串行调 MyMemory（每 50ms 间隔防限流）
+- **本地缓存 tab 侧边栏新增 "翻译" 分组**：
+  - ✅ 已翻译 245（已翻译数）
+  - 🔤 未翻译 25.0k（待翻译数）
+- **每张卡片左下角 "✏️ 改 / ✏️ 译" 按钮**（hover 才显示）：
+  - 弹自定义 modal 显示英文原文 + 中文输入框
+  - 留空 → 触发自动翻译
+  - 填值 → 触发手动纠正
+  - 完成后自动刷新当前列表 + sidebar 计数
+
+### 🛠 标签拉取保底（tag_image.php）
+
+- **分层 fallback**：`preview_file_url` → `large_file_url` → `file_url`
+  - 之前只看 `preview_file_url`，该字段为空时直接失败
+  - 现在依次试大图 → 原图，总能拿到
+- **`danbooruPickFirstPost()`** 函数：拿第一张有 preview 的 post
+  - `limit=1&random=true` 失败时，遍历 `limit=20` 找第一张有 `preview_file_url` 的
+  - 兜底拿第一张的 `file_url`（不再是死路）
+- `tags.example_image_url` 在写入前会先做 HEAD 探活（避免 404 永久缓存）
+
+### 📝 UI 文字微调
+
+- 提示词 tab 顶部"📋 提示词"badge → "🎨 画师串"（明确这是画师组合模板，不是普通提示词）
+- 标题也改为"画师串预设（多画师组合模板）"
+
 ## [1.1.1] - 2026-06-30
 
 > 🚀 **标签预览图全流程：构建时预生成 + 本地缓存 tab + 单 tag 手动拉取**

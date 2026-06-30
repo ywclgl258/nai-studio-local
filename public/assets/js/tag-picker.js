@@ -449,7 +449,7 @@ function renderTags() {
         groupHeader.className = 'tag-picker-group';
         groupHeader.innerHTML = `📦 本地缓存 <span>${localPart.length}</span>`;
         _els.body.appendChild(groupHeader);
-        for (const tag of localPart) _els.body.appendChild(buildCard(tag));
+        for (const tag of localPart) _els.body.appendChild(buildCard(tag, { showFetchBtn: true, showEditCn: true }));
     }
     if (onlinePart.length > 0 && (_state.activeCat === 'all' || _state.activeCat === 'online' || _state.activeCat !== 'local')) {
         const groupHeader = document.createElement('div');
@@ -477,6 +477,11 @@ function buildCard(tag, opts = {}) {
         ? `<button class="db-fetch-btn" data-fetch="${escapeHtml(tag.name)}" title="拉取 ${escapeHtml(tag.name)} 的预览图">📥 拉取</button>`
         : '';
 
+    // ✏️ 纠正翻译按钮（仅本地缓存 tab 显示）
+    const editCnBtn = opts.showEditCn
+        ? `<button class="db-edit-cn-btn" data-edit-cn="${escapeHtml(tag.name)}" title="手动纠正翻译" data-current-cn="${escapeHtml(tag.cn_name || '')}">${tag.cn_name ? '✏️ 改' : '✏️ 译'}</button>`
+        : '';
+
     card.innerHTML = `
         <div class="db-img">
             ${imgUrl
@@ -487,6 +492,7 @@ function buildCard(tag, opts = {}) {
         ${catName ? `<div class="db-cat">${escapeHtml(catName)}</div>` : ''}
         ${inCart ? `<div class="db-cart-mark" title="已在购物车">🛒</div>` : ''}
         ${fetchBtn}
+        ${editCnBtn}
         <div class="db-info">
             <div class="db-name"></div>
             ${cn}
@@ -503,6 +509,15 @@ function buildCard(tag, opts = {}) {
         });
     }
 
+    // 「✏️ 纠正翻译」按钮单独绑定
+    const editCnBtnEl = card.querySelector('.db-edit-cn-btn');
+    if (editCnBtnEl) {
+        editCnBtnEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            promptEditCn(editCnBtnEl, tag, loadLocalPage);
+        });
+    }
+
     // 点击卡片 = toggle 加入/移出购物车
     card.addEventListener('click', () => {
         const wasIn = isInCart(tag.name);
@@ -510,6 +525,146 @@ function buildCard(tag, opts = {}) {
         toast(wasIn ? `🗑 已从购物车移除: ${tag.name}` : `🛒 已加入购物车: ${tag.name}`, { type: 'success', duration: 1500 });
     });
     return card;
+}
+
+/**
+ * ✏️ 纠正翻译弹窗（自定义 modal）
+ * @param {HTMLElement} btn  按钮
+ * @param {object} tag       {name, cn_name, ...}
+ * @param {function} refreshFn 完成后刷新列表的回调
+ */
+function promptEditCn(btn, tag, refreshFn) {
+    const currentCn = tag.cn_name || '';
+    const name = tag.name;
+
+    // 构造 modal
+    const overlay = document.createElement('div');
+    overlay.className = 'preset-modal-overlay';
+    overlay.innerHTML = `
+        <div class="preset-modal" style="max-width:480px;">
+            <div class="preset-modal-header">
+                <h3>✏️ 纠正翻译</h3>
+                <button class="preset-modal-close" type="button">×</button>
+            </div>
+            <div class="preset-modal-body">
+                <div style="margin-bottom:14px;">
+                    <div style="font-size:13px;color:#999;margin-bottom:4px;">英文原文</div>
+                    <div style="font-size:15px;color:#1a1a1a;font-weight:600;">${escapeHtml(name)}</div>
+                </div>
+                <label style="display:block;font-size:13px;color:#999;margin-bottom:4px;">中文翻译</label>
+                <input type="text" class="preset-modal-name" value="${escapeHtml(currentCn)}" placeholder="留空 = 重新自动翻译" style="width:100%;">
+                <div style="margin-top:8px;font-size:12px;color:#aaa;">提示：留空点保存会触发自动翻译（字典优先 → MyMemory 兜底）</div>
+            </div>
+            <div class="preset-modal-footer">
+                <button class="preset-modal-cancel" type="button">取消</button>
+                <button class="preset-modal-save" type="button">保存</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('.preset-modal-name');
+    const saveBtn = overlay.querySelector('.preset-modal-save');
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('.preset-modal-close, .preset-modal-cancel').forEach(b => b.addEventListener('click', close));
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    input.focus(); input.select();
+
+    saveBtn.addEventListener('click', async () => {
+        const cn = input.value.trim();
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+        try {
+            if (cn) {
+                // 手动纠正
+                const r = await api.tagManualTranslate(name, cn);
+                if (r.ok) {
+                    toast(`✅ ${name} → ${r.cn_name}`, { type: 'success' });
+                    close();
+                    refreshFn && refreshFn(true);
+                } else {
+                    toast('保存失败：' + (r.error || 'unknown'), { type: 'error' });
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '保存';
+                }
+            } else {
+                // 自动重译
+                const r = await api.tagTranslateOne(name);
+                if (r.ok) {
+                    toast(`🔤 ${name} → ${r.cn_name}`, { type: 'success' });
+                    close();
+                    refreshFn && refreshFn(true);
+                } else {
+                    toast('翻译失败：' + (r.error || 'unknown'), { type: 'error' });
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '保存';
+                }
+            }
+        } catch (err) {
+            toast('请求失败：' + err.message, { type: 'error' });
+            saveBtn.disabled = false;
+            saveBtn.textContent = '保存';
+        }
+    });
+
+    // 回车保存
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') saveBtn.click();
+        if (e.key === 'Escape') close();
+    });
+}
+
+/**
+ * 🌐 批量翻译未翻译 tag（从当前过滤的列表中）
+ * 不传 filter → 翻全部（依次串行，每 50ms 一次避免 MyMemory 限流）
+ */
+async function batchTranslate() {
+    if (!confirm('批量翻译会逐条调用 MyMemory API（每条 50ms 间隔防限流）。\n点确定开始。')) return;
+
+    // 拿全部未翻译 tag（用我们的 API 分页拉）
+    let page = 1;
+    let total = 0;
+    const all = [];
+
+    toast('⏳ 拉取未翻译列表...');
+    const firstResp = await fetch(`/nai-studio/api/tags.php?action=untranslated_list&per_page=1&page=1`).then(r => r.json());
+    if (!firstResp.ok) {
+        toast('拉取失败', { type: 'error' });
+        return;
+    }
+    total = firstResp.total;
+
+    if (total === 0) {
+        toast('✅ 所有 tag 都已翻译！');
+        return;
+    }
+
+    if (!confirm(`共 ${total} 个未翻译 tag。\n继续？`)) return;
+
+    const perPage = 100;
+    const totalPages = Math.ceil(total / perPage);
+
+    let done = 0, success = 0, fail = 0;
+    for (page = 1; page <= totalPages; page++) {
+        const r = await fetch(`/nai-studio/api/tags.php?action=untranslated_list&per_page=${perPage}&page=${page}`).then(r => r.json());
+        if (!r.ok || !r.tags) continue;
+        for (const t of r.tags) {
+            try {
+                const tr = await api.tagTranslateOne(t.name);
+                if (tr.ok) success++; else fail++;
+            } catch (e) {
+                fail++;
+            }
+            done++;
+            if (done % 20 === 0) {
+                toast(`🔤 批量翻译中 ${done}/${total} (成功 ${success}, 失败 ${fail})`);
+            }
+            await new Promise(r => setTimeout(r, 50));  // 50ms 间隔防 MyMemory 限流
+        }
+    }
+    toast(`✅ 批量翻译完成: 成功 ${success} / 失败 ${fail} / 共 ${done}`);
+    // 刷新当前页
+    if (typeof loadLocalPage === 'function') loadLocalPage(true);
+    if (typeof refreshLocalCategoryCounts === 'function') refreshLocalCategoryCounts();
 }
 
 /**
@@ -648,6 +803,10 @@ function onLocalSidebarClick(btn) {
         filters.has_image = '1';
     } else if (localCat === 'no-image') {
         filters.has_image = '0';
+    } else if (localCat === 'translated') {
+        filters.has_cn = '1';
+    } else if (localCat === 'untranslated') {
+        filters.has_cn = '0';
     } else if (localCat.startsWith('cat-')) {
         filters.category = localCat.slice(4);
     } else if (localCat.startsWith('sort-')) {
@@ -719,7 +878,7 @@ function renderLocal() {
 
     // 用 fragment 批量 append
     const frag = document.createDocumentFragment();
-    for (const tag of tags) frag.appendChild(buildCard(tag, { showFetchBtn: true }));
+    for (const tag of tags) frag.appendChild(buildCard(tag, { showFetchBtn: true, showEditCn: true }));
     _els.body.appendChild(frag);
 
     // 底部加载更多指示
@@ -750,21 +909,26 @@ async function refreshLocalCount() {
  */
 async function refreshLocalCategoryCounts() {
     const filters = [
-        { key: 'All',     category: '', has_image: '' },
-        { key: 'With',    category: '', has_image: '1' },
-        { key: 'Without', category: '', has_image: '0' },
-        { key: 'General', category: '29', has_image: '' },
-        { key: 'Artist',  category: '30', has_image: '' },
-        { key: 'Copy',    category: '31', has_image: '' },
-        { key: 'Char',    category: '32', has_image: '' },
-        { key: 'Meta',    category: '33', has_image: '' },
+        { key: 'All',         category: '', has_image: '', has_cn: '' },
+        { key: 'With',        category: '', has_image: '1', has_cn: '' },
+        { key: 'Without',     category: '', has_image: '0', has_cn: '' },
+        { key: 'Translated',  category: '', has_image: '', has_cn: '1' },
+        { key: 'Untranslated',category: '', has_image: '', has_cn: '0' },
+        { key: 'General',     category: '29', has_image: '', has_cn: '' },
+        { key: 'Artist',      category: '30', has_image: '', has_cn: '' },
+        { key: 'Copy',        category: '31', has_image: '', has_cn: '' },
+        { key: 'Char',        category: '32', has_image: '', has_cn: '' },
+        { key: 'Meta',        category: '33', has_image: '', has_cn: '' },
     ];
     const results = await Promise.allSettled(filters.map(f => api.tagLocalList({
         page: 1, per_page: 1,
-        category: f.category, has_image: f.has_image,
+        category: f.category, has_image: f.has_image, has_cn: f.has_cn,
     })));
     const map = { All: 'tagPickerLocalCatCountAll', With: 'tagPickerLocalCatCountWith',
-                  Without: 'tagPickerLocalCatCountWithout', General: 'tagPickerLocalCatCountGeneral',
+                  Without: 'tagPickerLocalCatCountWithout',
+                  Translated: 'tagPickerLocalCatCountTranslated',
+                  Untranslated: 'tagPickerLocalCatCountUntranslated',
+                  General: 'tagPickerLocalCatCountGeneral',
                   Artist: 'tagPickerLocalCatCountArtist', Copy: 'tagPickerLocalCatCountCopy',
                   Char: 'tagPickerLocalCatCountChar', Meta: 'tagPickerLocalCatCountMeta' };
     results.forEach((r, i) => {
@@ -808,6 +972,7 @@ export function initTagPicker() {
         // 本地缓存 tab
         localCount:     document.getElementById('tagPickerLocalCount'),
         localToolbar:   document.getElementById('tagPickerLocalToolbar'),
+        batchTranslateBtn: document.getElementById('tagPickerBatchTranslateBtn'),
         localCategory:  document.getElementById('tagPickerLocalCategory'),
         localHasImage:  document.getElementById('tagPickerLocalHasImage'),
         localSort:      document.getElementById('tagPickerLocalSort'),
@@ -852,6 +1017,9 @@ export function initTagPicker() {
     _els.picker.querySelectorAll('.tag-picker-tab').forEach(btn => {
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
+
+    // 批量翻译按钮
+    _els.batchTranslateBtn?.addEventListener('click', batchTranslate);
 
     // 滚动到底自动加载更多
     _els.body?.addEventListener('scroll', () => {

@@ -188,7 +188,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                      必须在 .prompt-editor 外部 — 内部的 .prompt-highlight 是 absolute inset:0，会盖住 row
                      prompt.js 切 tab 时同步 toggle hidden（target !== 'prompt' 时隐藏） -->
                 <div class="prompt-preset-row preset-row-kind-prompt" id="promptPresetRow" data-kind="prompt">
-                    <span class="preset-kind-badge" data-kind="prompt" title="提示词预设">📋 提示词</span>
+                    <span class="preset-kind-badge" data-kind="prompt" title="画师串预设（多画师组合模板）">🎨 画师串</span>
                     <select class="preset-select" id="promptPresetQuickSelect" title="载入提示词预设（同时设置主+负面+模型）">
                         <option value="">— 提示词预设 —</option>
                     </select>
@@ -589,6 +589,9 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 <button class="tag-picker-tab" data-tab="local" role="tab" title="浏览本地已缓存标签（含预览图）">
                     💾 本地缓存 <span class="tag-picker-tab-count" id="tagPickerLocalCount">0</span>
                 </button>
+                <button class="tag-picker-tab-btn" id="tagPickerBatchTranslateBtn" type="button" title="批量翻译所有未翻译的本地 tag（串行调 MyMemory，每 50ms 一次）" style="margin-left:auto;">
+                    🌐 批量翻译
+                </button>
             </div>
             <div class="tag-picker-search-wrap">
                 <div class="tag-picker-search-row">
@@ -673,6 +676,18 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                         <span class="cat-icon">❌</span>
                         <span class="cat-name">缺图</span>
                         <span class="cat-count" id="tagPickerLocalCatCountWithout">0</span>
+                    </button>
+                    <div class="tag-picker-sidebar-divider"></div>
+                    <div class="tag-picker-sidebar-label">翻译</div>
+                    <button class="tag-picker-cat-btn" data-local-cat="translated">
+                        <span class="cat-icon">✅</span>
+                        <span class="cat-name">已翻译</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountTranslated">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-cat="untranslated">
+                        <span class="cat-icon">🔤</span>
+                        <span class="cat-name">未翻译</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountUntranslated">0</span>
                     </button>
                     <div class="tag-picker-sidebar-divider"></div>
                     <div class="tag-picker-sidebar-label">类别</div>

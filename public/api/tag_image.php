@@ -29,6 +29,11 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 /**
  * 抓一张图（核心逻辑）
  * 流程：本地 → DB → Danbooru → 下载 → 写回 DB → 返回 URL
+ *
+ * 保底策略（按顺序 fallback）：
+ *   1. posts.json?tags=name&limit=1&random=true（最常见的）
+ *   2. limit=20 不 random，遍历找一个有 preview_file_url 的 post
+ *   3. 如果都只有 file_url / large_file_url（受限 post 没 preview），用大图代替
  */
 function fetchOne(string $tag): array {
     $tag = trim($tag);
@@ -43,33 +48,26 @@ function fetchOne(string $tag): array {
 
     // 2. 本地已有（≥1KB 算有效）
     if (file_exists($fname) && filesize($fname) > 1000) {
-        // 顺便回填 DB（防止 DB 和本地不同步）
         syncDb($tag, $relUrl);
         return ['name' => $tag, 'ok' => true, 'url' => $relUrl, 'source' => 'local'];
     }
 
-    // 3. DB 里有 url 但本地没图（异常状态）→ 强制重抓
-    // 4. 调 Danbooru posts.json
-    $apiUrl = 'https://danbooru.donmai.us/posts.json?tags=' . urlencode($tag) . '&limit=1&random=true';
-    $body = httpGet($apiUrl, 15);
-    if ($body === false || $body === '') {
-        return ['name' => $tag, 'ok' => false, 'error' => 'danbooru_unreachable'];
-    }
-    $posts = json_decode($body, true);
-    if (!is_array($posts) || empty($posts)) {
-        // 没找到 post（冷门标签）→ 标记已尝试，避免反复请求
+    // 3. 调 Danbooru 抓第一个 post
+    $post = danbooruPickFirstPost($tag);
+    if ($post === null) {
         markAttempted($tag);
         return ['name' => $tag, 'ok' => false, 'error' => 'no_posts'];
     }
 
-    $previewUrl = $posts[0]['preview_file_url'] ?? null;
-    if (!$previewUrl) {
+    // 4. 选图源：preview > large > file（按可用性 fallback）
+    $imgUrl = $post['preview_file_url'] ?? $post['large_file_url'] ?? $post['file_url'] ?? null;
+    if (!$imgUrl) {
         markAttempted($tag);
-        return ['name' => $tag, 'ok' => false, 'error' => 'no_preview_url'];
+        return ['name' => $tag, 'ok' => false, 'error' => 'no_image_url'];
     }
 
     // 5. 下载图片
-    $img = httpGet($previewUrl, 20);
+    $img = httpGet($imgUrl, 20);
     if (strlen($img) < 500) {
         markAttempted($tag);
         return ['name' => $tag, 'ok' => false, 'error' => 'download_too_small'];
@@ -83,6 +81,43 @@ function fetchOne(string $tag): array {
     syncDb($tag, $relUrl);
 
     return ['name' => $tag, 'ok' => true, 'url' => $relUrl, 'source' => 'danbooru', 'bytes' => strlen($img)];
+}
+
+/**
+ * 从 Danbooru 找一个有图的 post
+ *
+ * Fallback 链：
+ *   1. limit=1&random=true（绝大多数场景）
+ *   2. limit=20 找第一个有 preview_file_url 的（解决 random 命中受限 post）
+ *   3. 用 file_url 兜底（即使 preview 缺失也能用大图）
+ */
+function danbooruPickFirstPost(string $tag): ?array {
+    // Step 1: 随机抽 1 个
+    $url = 'https://danbooru.donmai.us/posts.json?tags=' . urlencode($tag) . '&limit=1&random=true';
+    $body = httpGet($url, 15);
+    if ($body !== false && $body !== '') {
+        $posts = json_decode($body, true);
+        if (is_array($posts) && !empty($posts)) {
+            return $posts[0];
+        }
+    }
+
+    // Step 2: 取 20 个，遍历找第一个有 preview_file_url 的（解决受限 post 兜底）
+    $url = 'https://danbooru.donmai.us/posts.json?tags=' . urlencode($tag) . '&limit=20';
+    $body = httpGet($url, 15);
+    if ($body !== false && $body !== '') {
+        $posts = json_decode($body, true);
+        if (is_array($posts) && !empty($posts)) {
+            foreach ($posts as $p) {
+                if (!empty($p['preview_file_url'])) return $p;
+            }
+            // 都没 preview，但有 large / file URL — 退回第一个（用大图）
+            return $posts[0];
+        }
+    }
+
+    // Step 3: 整个没 post
+    return null;
 }
 
 /**

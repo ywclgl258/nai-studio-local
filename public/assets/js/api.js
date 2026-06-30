@@ -70,6 +70,8 @@ export const api = {
     tagPopular:     (categoryId, limit = 60) => request('GET', `/api/tags.php?action=popular&category=${categoryId}&limit=${limit}`),
     tagLookup:      (names) => request('GET', '/api/tags.php?action=lookup&names=' + encodeURIComponent(names.join(','))),
     tagDetail:      (name) => request('GET', '/api/tags.php?action=detail&name=' + encodeURIComponent(name)),
+    tagTranslateOne:      (name) => request('POST', '/api/tags.php?action=translate_one', { name }),
+    tagManualTranslate:   (name, cn_name) => request('POST', '/api/tags.php?action=manual_translate', { name, cn_name }),
 
     // Prompts (presets)
     listPrompts:    (params = {}) => request('GET', '/api/prompts.php?' + new URLSearchParams(params)),

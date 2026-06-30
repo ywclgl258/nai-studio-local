@@ -15,7 +15,8 @@ require_once __DIR__ . '/../../src/bootstrap.php';
 use NaiStudio\TagManager;
 use NaiStudio\Db;
 
-$action = $_GET['action'] ?? 'categories';
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$action = $_GET['action'] ?? $_POST['action'] ?? 'categories';
 
 switch ($action) {
     case 'categories':
@@ -87,6 +88,7 @@ switch ($action) {
 
         $cid       = isset($_GET['category']) && $_GET['category'] !== '' ? (int)$_GET['category'] : null;
         $hasImage  = $_GET['has_image'] ?? null;          // '1' / '0' / null=全部
+        $hasCn     = $_GET['has_cn'] ?? null;             // '1' / '0' / null=全部（"已翻译"筛选）
         $q         = trim((string)($_GET['q'] ?? ''));    // 模糊搜 name/cn_name
         $sort      = $_GET['sort'] ?? 'popular';           // 'popular' | 'recent' | 'name' | 'random'
 
@@ -101,6 +103,12 @@ switch ($action) {
             $where[] = 't.example_image_url IS NOT NULL AND t.example_image_url <> ""';
         } elseif ($hasImage === '0') {
             $where[] = '(t.example_image_url IS NULL OR t.example_image_url = "")';
+        }
+        if ($hasCn === '0') {
+            // 未翻译：cn_name 为空或 NULL
+            $where[] = '(t.cn_name IS NULL OR TRIM(t.cn_name) = "")';
+        } elseif ($hasCn === '1') {
+            $where[] = '(t.cn_name IS NOT NULL AND TRIM(t.cn_name) <> "")';
         }
         if ($q !== '') {
             $where[] = '(t.name LIKE ? OR t.cn_name LIKE ?)';
@@ -145,9 +153,137 @@ switch ($action) {
             'filters'  => [
                 'category'  => $cid,
                 'has_image' => $hasImage,
+                'has_cn'    => $hasCn,
                 'q'         => $q,
                 'sort'      => $sort,
             ],
+        ]);
+        break;
+    }
+
+    // ===== 未翻译 tag 列表（本地缓存里 cn_name 为空） =====
+    case 'untranslated_list': {
+        $page    = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = max(1, min(200, (int)($_GET['per_page'] ?? 60)));
+        $offset  = ($page - 1) * $perPage;
+        $cid     = isset($_GET['category']) && $_GET['category'] !== '' ? (int)$_GET['category'] : null;
+
+        $where = ['(t.cn_name IS NULL OR TRIM(t.cn_name) = "")'];
+        $params = [];
+        if ($cid !== null) {
+            $where[] = 't.category_id = ?';
+            $params[] = $cid;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $totalRow = Db::fetchOne("SELECT COUNT(*) AS c FROM tags t WHERE $whereSql", $params);
+        $total = (int)$totalRow['c'];
+
+        $rows = Db::fetchAll(
+            "SELECT t.name, t.category_id, t.post_count, t.fetched_at, c.name_cn AS category_name_cn
+             FROM tags t
+             LEFT JOIN tag_categories c ON c.id = t.category_id
+             WHERE $whereSql
+             ORDER BY t.post_count DESC, t.name ASC
+             LIMIT $perPage OFFSET $offset",
+            $params
+        );
+
+        ok_response([
+            'rows'     => $rows,
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+            'has_more' => $offset + count($rows) < $total,
+        ]);
+        break;
+    }
+
+    // ===== 重新翻译一个 tag（单条重译） =====
+    case 'translate_one': {
+        if ($method !== 'POST') error_response('Method not allowed', 405);
+        $name = trim((string)($_POST['name'] ?? ''));
+        if ($name === '') error_response('name required', 400);
+
+        // 跳过非英文（避免翻译中文 tag 本身）
+        if (preg_match('/[\x{4e00}-\x{9fff}]/u', $name)) {
+            error_response('name 是中文，不需要翻译', 400);
+        }
+
+        $row = Db::fetchOne('SELECT name, cn_name FROM tags WHERE name = ?', [$name]);
+        if (!$row) error_response('tag not found', 404);
+
+        // 优先 TagDict 字典
+        $cn = \NaiStudio\TagDict::lookup($name);
+
+        // 字典没命中 → fallback 翻译 API（MyMemory / 本地）
+        if ($cn === null || $cn === '') {
+            try {
+                $tr = \NaiStudio\Translator::enToZh($name);
+                $cn = $tr['cn'] ?? null;
+            } catch (Throwable $e) {
+                error_log('[translate_one] translator failed: ' . $e->getMessage());
+            }
+        }
+
+        if ($cn === null || $cn === '' || $cn === $name) {
+            ok_response([
+                'name'   => $name,
+                'ok'     => false,
+                'reason' => 'no_translation',
+                'hint'   => '请手动纠正',
+            ]);
+            exit;
+        }
+
+        Db::execute('UPDATE tags SET cn_name = ?, translated_at = CURRENT_TIMESTAMP WHERE name = ?', [$cn, $name]);
+
+        // 同步到 danbooru_tag_cache（让搜索也能命中中文）
+        try {
+            Db::execute(
+                'UPDATE danbooru_tag_cache SET cn_name = ?, translated_at = CURRENT_TIMESTAMP WHERE name = ?',
+                [$cn, $name]
+            );
+        } catch (Throwable $e) {}
+
+        ok_response([
+            'name'    => $name,
+            'ok'      => true,
+            'cn_name' => $cn,
+            'source'  => 'auto',
+        ]);
+        break;
+    }
+
+    // ===== 手动纠正翻译（用户输入正确中文，DB 直接写） =====
+    case 'manual_translate': {
+        if ($method !== 'POST') error_response('Method not allowed', 405);
+        $name = trim((string)($_POST['name'] ?? ''));
+        $cn   = trim((string)($_POST['cn_name'] ?? ''));
+        if ($name === '') error_response('name required', 400);
+        if ($cn === '') error_response('cn_name required', 400);
+
+        $row = Db::fetchOne('SELECT name FROM tags WHERE name = ?', [$name]);
+        if (!$row) error_response('tag not found', 404);
+
+        Db::execute(
+            'UPDATE tags SET cn_name = ?, translated_at = CURRENT_TIMESTAMP WHERE name = ?',
+            [$cn, $name]
+        );
+
+        // 同步到 danbooru_tag_cache
+        try {
+            Db::execute(
+                'UPDATE danbooru_tag_cache SET cn_name = ?, translated_at = CURRENT_TIMESTAMP WHERE name = ?',
+                [$cn, $name]
+            );
+        } catch (Throwable $e) {}
+
+        ok_response([
+            'name'    => $name,
+            'ok'      => true,
+            'cn_name' => $cn,
+            'source'  => 'manual',
         ]);
         break;
     }
