@@ -90,7 +90,16 @@ class Db {
                 continue;
             }
             // LEFT(s, n) → substr(s, 1, n)  （在第一个参数后插入 ", 1"）
+            // 关键：必须不是 LEFT JOIN / LEFT OUTER JOIN 这种关键字用法
             if (substr($sql, $i, 5) === 'LEFT(' && ($i === 0 || !ctype_alnum($sql[$i-1] ?? ''))) {
+                // 检查后续是不是 JOIN / OUTER / RIGHT / INNER（LEFT JOIN 关键字）
+                $rest = substr($sql, $i + 5);  // 'JOIN ...' 或 'arg,...)'
+                if (preg_match('/^(?:\s+(?:JOIN|OUTER|RIGHT|INNER))/', $rest)) {
+                    // 是 LEFT JOIN 关键字，不替换，直接输出 LEFT 并跳过
+                    $out .= 'LEFT';
+                    $i += 4;
+                    continue;
+                }
                 $out .= 'substr(';
                 $i += 5;
                 // 找到 LEFT 参数结束位置（即 ')'）

@@ -13,6 +13,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../../src/bootstrap.php';
+require_once __DIR__ . '/../../src/lib/DanbooruClient.php';  // dbFetch() 函数
 
 use NaiStudio\Db;
 use NaiStudio\Logger;
@@ -26,36 +27,7 @@ $limit  = max(1, min(100, (int)($_GET['limit'] ?? 50)));
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-// 统一 curl helper：支持 settings 里的代理开关
-function dbFetch(string $url, int $timeout = 8): ?array {
-    $proxy = Settings::getProxyUrl();
-    $ch = curl_init($url);
-    $opts = [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => $timeout,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_USERAGENT      => 'NAI-Studio/1.0 (local)',
-        CURLOPT_HTTPHEADER     => ['Accept: application/json'],
-    ];
-    if ($proxy) {
-        $opts[CURLOPT_PROXY] = $proxy;
-    }
-    curl_setopt_array($ch, $opts);
-    $body = curl_exec($ch);
-    $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    $errno = curl_errno($ch);
-    curl_close($ch);
-    if ($body === false) {
-        Logger::warn('danbooru.fetch.fail', ['url' => $url, 'errno' => $errno, 'proxy' => $proxy ?: 'none']);
-        return null;
-    }
-    if ($code >= 400) {
-        Logger::warn('danbooru.fetch.http', ['url' => $url, 'code' => $code, 'proxy' => $proxy ?: 'none']);
-        return null;
-    }
-    $j = json_decode($body, true);
-    return is_array($j) ? $j : null;
-}
+// dbFetch() 已移到 src/lib/DanbooruClient.php
 
 if ($action === 'tag') {
     if ($q === '') {

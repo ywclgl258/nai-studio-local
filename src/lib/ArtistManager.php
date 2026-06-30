@@ -88,13 +88,22 @@ class ArtistManager {
         };
 
         $sql = "SELECT a.*,
-                    GROUP_CONCAT(c.name ORDER BY c.display_order SEPARATOR ',') AS category_names,
-                    GROUP_CONCAT(c.id ORDER BY c.display_order) AS category_ids
+                    (SELECT GROUP_CONCAT(c2.name, ',')
+                     FROM (SELECT c3.name, c3.id
+                           FROM artist_category_map m2
+                           INNER JOIN artist_categories c3 ON c3.id = m2.category_id
+                           WHERE m2.artist_id = a.id
+                           ORDER BY c3.display_order) c2
+                    ) AS category_names,
+                    (SELECT GROUP_CONCAT(c2.id, ',')
+                     FROM (SELECT c3.name, c3.id
+                           FROM artist_category_map m2
+                           INNER JOIN artist_categories c3 ON c3.id = m2.category_id
+                           WHERE m2.artist_id = a.id
+                           ORDER BY c3.display_order) c2
+                    ) AS category_ids
                 FROM artists a
-                LEFT JOIN artist_category_map m ON a.id = m.artist_id
-                LEFT JOIN artist_categories c ON m.category_id = c.id
                 WHERE " . implode(' AND ', $where) . "
-                GROUP BY a.id
                 ORDER BY $orderCol
                 LIMIT " . max(1, min(2000, $limit));
 

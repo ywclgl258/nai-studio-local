@@ -19,6 +19,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../../src/bootstrap.php';
+require_once __DIR__ . '/../../src/lib/DanbooruClient.php';  // 提供 dbFetch()
 
 use NaiStudio\ArtistManager;
 use NaiStudio\DanbooruArtistFetcher;
@@ -27,13 +28,16 @@ use NaiStudio\Db;
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+file_put_contents("php://stderr", "TRACE-IN method=" . $_SERVER["REQUEST_METHOD"] . " action=" . ($_GET["action"] ?? "NULL") . " line=" . __LINE__ . "\n"); file_put_contents("php://stderr", "TRACE-IN method=" . $_SERVER["REQUEST_METHOD"] . " action=" . ($_GET["action"] ?? "NULL") . " line=" . __LINE__ . "\n"); file_put_contents("php://stderr", "TRACE-IN method=" . $_SERVER["REQUEST_METHOD"] . " action=" . ($_GET["action"] ?? "NULL") . " line=" . __LINE__ . "\n"); file_put_contents("php://stderr", "TRACE-IN method=" . $_SERVER["REQUEST_METHOD"] . " action=" . ($_GET["action"] ?? "NULL") . " line=" . __LINE__ . "\n"); $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
 $b = $method === 'POST' ? read_json_body() : [];
 
+error_log("[artists] method=$method action=$action", 0);
+
 // ===== GET =====
 
-if ($method === 'GET' && $action === 'list') {
+file_put_contents("php://stderr", "TRACE-IF checking list\n"); file_put_contents("php://stderr", "TRACE-IF checking list\n"); file_put_contents("php://stderr", "TRACE-IF checking list\n"); file_put_contents("php://stderr", "TRACE-IF checking list\n"); if ($method === 'GET' && $action === 'list') { file_put_contents("php://stderr", "TRACE-MATCH list\n"); file_put_contents("php://stderr", "TRACE-MATCH list\n"); file_put_contents("php://stderr", "TRACE-MATCH list\n"); file_put_contents("php://stderr", "TRACE-MATCH list\n");
+    error_log("[artists] matched list", 0);
     $categoryId = isset($_GET['category_id']) ? (int)$_GET['category_id'] : null;
     $q = trim((string)($_GET['q'] ?? ''));
     $sort = $_GET['sort'] ?? 'post_count';
@@ -42,7 +46,7 @@ if ($method === 'GET' && $action === 'list') {
     exit;
 }
 
-if ($method === 'GET' && $action === 'detail') {
+file_put_contents("php://stderr", "TRACE-IF checking detail\n"); file_put_contents("php://stderr", "TRACE-IF checking detail\n"); file_put_contents("php://stderr", "TRACE-IF checking detail\n"); file_put_contents("php://stderr", "TRACE-IF checking detail\n"); if ($method === 'GET' && $action === 'detail') { file_put_contents("php://stderr", "TRACE-MATCH detail\n"); file_put_contents("php://stderr", "TRACE-MATCH detail\n"); file_put_contents("php://stderr", "TRACE-MATCH detail\n"); file_put_contents("php://stderr", "TRACE-MATCH detail\n");
     $id = (int)($_GET['id'] ?? 0);
     if (!$id) error_response('id required', 400);
     $row = ArtistManager::getArtistById($id);
@@ -59,12 +63,12 @@ if ($method === 'GET' && ($action === 'search' || $action === 'lookup')) {
     exit;
 }
 
-if ($method === 'GET' && $action === 'categories') {
+file_put_contents("php://stderr", "TRACE-IF checking categories\n"); file_put_contents("php://stderr", "TRACE-IF checking categories\n"); file_put_contents("php://stderr", "TRACE-IF checking categories\n"); file_put_contents("php://stderr", "TRACE-IF checking categories\n"); if ($method === 'GET' && $action === 'categories') { file_put_contents("php://stderr", "TRACE-MATCH categories\n"); file_put_contents("php://stderr", "TRACE-MATCH categories\n"); file_put_contents("php://stderr", "TRACE-MATCH categories\n"); file_put_contents("php://stderr", "TRACE-MATCH categories\n");
     ok_response(['rows' => ArtistManager::getCategories()]);
     exit;
 }
 
-if ($method === 'GET' && $action === 'danbooru_search') {
+file_put_contents("php://stderr", "TRACE-IF checking danbooru_search\n"); file_put_contents("php://stderr", "TRACE-IF checking danbooru_search\n"); file_put_contents("php://stderr", "TRACE-IF checking danbooru_search\n"); file_put_contents("php://stderr", "TRACE-IF checking danbooru_search\n"); if ($method === 'GET' && $action === 'danbooru_search') { file_put_contents("php://stderr", "TRACE-MATCH danbooru_search\n"); file_put_contents("php://stderr", "TRACE-MATCH danbooru_search\n"); file_put_contents("php://stderr", "TRACE-MATCH danbooru_search\n"); file_put_contents("php://stderr", "TRACE-MATCH danbooru_search\n");
     // 画师库 v2：直接从 Danbooru 作者库取
     //  ?q=ciloranko  →  模糊搜索
     //  ?q=           →  热门作者（按 id 倒序的前 N 个）
@@ -109,7 +113,7 @@ if ($method === 'GET' && $action === 'danbooru_search') {
     exit;
 }
 
-if ($method === 'GET' && $action === 'duplicates') {
+file_put_contents("php://stderr", "TRACE-IF checking duplicates\n"); file_put_contents("php://stderr", "TRACE-IF checking duplicates\n"); file_put_contents("php://stderr", "TRACE-IF checking duplicates\n"); file_put_contents("php://stderr", "TRACE-IF checking duplicates\n"); if ($method === 'GET' && $action === 'duplicates') { file_put_contents("php://stderr", "TRACE-MATCH duplicates\n"); file_put_contents("php://stderr", "TRACE-MATCH duplicates\n"); file_put_contents("php://stderr", "TRACE-MATCH duplicates\n"); file_put_contents("php://stderr", "TRACE-MATCH duplicates\n");
     ok_response(['rows' => ArtistManager::findDuplicates()]);
     exit;
 }
@@ -232,4 +236,4 @@ if ($action === 'category_delete') {
     exit;
 }
 
-error_response('Unknown action: ' . $action, 400);
+file_put_contents("php://stderr", "TRACE-FALLTHROUGH action=" . $action . " line=" . __LINE__ . "\n"); file_put_contents("php://stderr", "TRACE-FALLTHROUGH action=" . $action . " line=" . __LINE__ . "\n"); file_put_contents("php://stderr", "TRACE-FALLTHROUGH action=" . $action . " line=" . __LINE__ . "\n"); file_put_contents("php://stderr", "TRACE-FALLTHROUGH action=" . $action . " line=" . __LINE__ . "\n"); error_response('Unknown action: ' . $action, 400);
