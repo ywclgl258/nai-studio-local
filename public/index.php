@@ -930,17 +930,19 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 
                 <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
 
-                <h3 style="font-size:13px;color:var(--accent);margin:0 0 8px">本地翻译（可选）</h3>
+                <h3 style="font-size:13px;color:var(--accent);margin:0 0 8px">本地翻译（OPUS-MT / LibreTranslate）</h3>
                 <p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">
                     跑 LibreTranslate / OPUS-MT 本地服务后，填 URL 启用。完全离线，无每日翻译限额。
-                    优先级：内置字典 → 本地服务 → MyMemory 在线。
                 </p>
-                <label class="toggle-row">
-                    <span>启用本地翻译</span>
-                    <input type="checkbox" id="settingsLocalTranslateEnabled">
+                <label>翻译源
+                    <select id="settingsTranslateSource">
+                        <option value="fallback">推荐：在线优先 + 本地兜底</option>
+                        <option value="off">只使用在线（DeepSeek / MyMemory）</option>
+                        <option value="local">只使用本地（完全离线）</option>
+                    </select>
                 </label>
                 <label>服务地址
-                    <input id="settingsLocalTranslateUrl" type="text" placeholder="例如 http://127.0.0.1:5000">
+                    <input id="settingsLocalTranslateUrl" type="text" placeholder="例如 http://127.0.0.1:5555">
                 </label>
                 <div style="display:flex;align-items:center;gap:8px">
                     <button class="ghost-button small" id="testLocalTranslateBtn">测试连接</button>

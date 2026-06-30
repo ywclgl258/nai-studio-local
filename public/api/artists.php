@@ -82,7 +82,14 @@ file_put_contents("php://stderr", "TRACE-IF checking danbooru_search\n"); file_p
     }
     $data = dbFetch($url);
     if ($data === null) {
-        ok_response(['rows' => [], 'source' => 'danbooru_offline', 'q' => $q, 'warning' => 'Danbooru 不可达']);
+        // Danbooru 不可达：降级到本地画师库（按 q 模糊匹配 name_noob/name_nai/name_cn）
+        $localRows = ArtistManager::getArtists(null, $q, 'post_count', $limit);
+        ok_response([
+            'rows'    => $localRows,
+            'source'  => 'local_fallback',
+            'q'       => $q,
+            'warning' => 'Danbooru 不可达（需要开代理或检查网络），已降级到本地画师库',
+        ]);
         exit;
     }
     $rows = [];

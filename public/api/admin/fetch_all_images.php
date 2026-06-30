@@ -64,6 +64,46 @@ ignore_user_abort(false);  // 客户端断开则终止
 $pdo = Db::pdo();
 $pdo->setAttribute(PDO::ATTR_TIMEOUT, 0);
 
+// PHP built-in server 是单线程，长任务会死锁整个 server。
+// 在请求线程里跑 SSE 流是不行的，必须 spawn 独立 PHP 进程。
+$sapi = PHP_SAPI ?? '';
+$canSpawn = in_array($sapi, ['cli-server', 'cli'], true);
+
+if ($canSpawn) {
+    $logFile = dirname(__DIR__, 3) . '/storage/logs/fetch_all_images.log';
+    $stateFile = dirname(__DIR__, 3) . '/storage/cache/fetch_all_images-status.json';
+    @mkdir(dirname($logFile), 0775, true);
+    @mkdir(dirname($stateFile), 0775, true);
+    @file_put_contents($stateFile, json_encode([
+        'status' => 'running', 'started_at' => date('Y-m-d H:i:s'),
+        'limit' => $limit, 'progress' => 0, 'total' => 0,
+        'message' => '已启动后台进程',
+    ], JSON_UNESCAPED_UNICODE));
+    $stateFileEsc = '"' . str_replace('/', '\\', $stateFile) . '"';
+    $logFileEsc   = '"' . str_replace('/', '\\', $logFile) . '"';
+    $cliScript    = realpath(__DIR__ . '/../../../tools/fetch_all_images_cli.php');
+    $phpExe       = realpath(__DIR__ . '/../../../runtime/php/php.exe') ?: (PHP_BINARY ?: 'php');
+    if ($cliScript && file_exists($cliScript)) {
+        $cmd = '"' . str_replace('/', '\\', $phpExe) . '" "' . str_replace('/', '\\', $cliScript) . '" --limit=' . $limit
+             . ' --state-file=' . $stateFileEsc . ' --log-file=' . $logFileEsc;
+        $vbs = sys_get_temp_dir() . '\\nai_fetch_all_cli.vbs';
+        file_put_contents($vbs, "Set WshShell = CreateObject(\"WScript.Shell\")\r\nWshShell.Run \"\"\"cmd.exe\"\" /c \"\"\"$cmd > $logFileEsc 2>&1\"\"\"\", 0, False\r\n");
+        pclose(popen('cmd /c start /min "" wscript "' . $vbs . '"', 'r'));
+        sse_flush(json_encode([
+            'stage' => 'detached',
+            'message' => 'PHP 单线程 server：长任务已 spawn 到独立进程，立即返回',
+            'state' => $stateFile,
+            'log' => $logFile,
+        ], JSON_UNESCAPED_UNICODE));
+        exit;
+    }
+    // 兜底（CLI 脚本缺失）：继续走原 SSE 流程（带警告）
+    sse_flush(json_encode([
+        'stage' => 'warning',
+        'message' => 'CLI 脚本缺失，临时在请求线程里跑（会阻塞 server，请耐心等待）',
+    ], JSON_UNESCAPED_UNICODE));
+}
+
 // 检查是否支持 flush
 function sse_flush(string $data): void {
     echo "data: $data\n\n";

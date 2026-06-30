@@ -203,9 +203,29 @@ if ($action === 'post') {
 
 if ($action === 'translate') {
     if ($q === '') error_response('q required', 400);
-    // 直接翻译一个词
-    $r = Translator::enToZh($q);
-    ok_response(['q' => $q, 'cn' => $r['cn'], 'cached' => $r['cached']]);
+    // 自动判断翻译方向：含中文 → zh→en（含英文 → en→zh）
+    $hasCjk = preg_match('/[\x{4e00}-\x{9fff}]/u', $q);
+    if ($hasCjk) {
+        // 中文 → 英文：返回 to_en 字段
+        $r = Translator::zhToEn($q);
+        ok_response([
+            'q'      => $q,
+            'en'     => $r['en'] ?? '',
+            'cn'     => '',
+            'source' => $r['source'] ?? 'fail',
+            'cached' => $r['cached'] ?? false,
+        ]);
+    } else {
+        // 英文 → 中文
+        $r = Translator::enToZh($q);
+        ok_response([
+            'q'      => $q,
+            'cn'     => $r['cn'],
+            'en'     => '',
+            'source' => $r['source'] ?? 'fail',
+            'cached' => $r['cached'] ?? false,
+        ]);
+    }
     exit;
 }
 

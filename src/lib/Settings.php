@@ -55,6 +55,7 @@ class Settings {
             'theme','proxy_enabled','proxy_url','proxy_test_status','proxy_tested_at',
             'local_translate_enabled','local_translate_url',
             'local_translate_status','local_translate_tested_at',
+            'translate_source',  // v1.1.4: 'off' | 'fallback' | 'local'
             'aggressive_fallback_enabled',
             'danbooru_username','danbooru_api_key',
             'deepseek_api_key','deepseek_model','deepseek_base_url',
@@ -92,6 +93,29 @@ class Settings {
     public static function getLocalTranslateEnabled(): bool {
         $row = Db::fetchOne("SELECT local_translate_enabled FROM settings WHERE id = 1");
         return !empty($row) && !empty($row['local_translate_enabled']);
+    }
+
+    /**
+     * v1.1.4 翻译源选择
+     *   'off'      — 不使用本地，只走在线（MyMemory / Google / AI）
+     *   'fallback' — 在线优先，本地兜底（推荐：又快又能离线工作）
+     *   'local'    — 只用本地，失败报"未翻译"
+     */
+    public static function getTranslateSource(): string {
+        $row = Db::fetchOne("SELECT translate_source FROM settings WHERE id = 1");
+        $v = trim((string)($row['translate_source'] ?? 'fallback'));
+        if (!in_array($v, ['off', 'fallback', 'local'], true)) return 'fallback';
+        return $v;
+    }
+
+    /** 是否需要尝试本地翻译（off → false；fallback / local → true） */
+    public static function shouldTryLocal(): bool {
+        return self::getTranslateSource() !== 'off';
+    }
+
+    /** 是否需要兜底到在线（off / fallback → true；local → false） */
+    public static function shouldFallbackToOnline(): bool {
+        return self::getTranslateSource() !== 'local';
     }
 
     public static function getAggressiveFallbackEnabled(): bool {

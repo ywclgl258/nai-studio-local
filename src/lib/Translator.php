@@ -43,8 +43,31 @@ class Translator {
             return ['cn' => $cache, 'cached' => true, 'confidence' => 1, 'source' => 'memory'];
         }
 
-        // 2.5) AI 翻译（DeepSeek，最后兜底 - 比 MyMemory/Google 准但要花 token）
-        if (DeepSeekHelper::isEnabled() && $autoTranslate) {
+        // v1.1.4 三级翻译源：
+        //   off      — 跳过本地 + AI（不推荐：缺能力）
+        //   fallback — 本地优先（OPUS-MT），失败 → AI（DeepSeek）→ 在线（MyMemory）
+        //   local    — 只用本地，失败报错
+        $source = Settings::getTranslateSource();
+
+        // 2.5) 本地翻译（off 跳过；fallback/local 走）
+        if ($source !== 'off' && Settings::getLocalTranslateEnabled()) {
+            $localUrl = Settings::getLocalTranslateUrl();
+            if ($localUrl) {
+                $cn = self::callLocalTranslate($localUrl, $text, 4, 'en', 'zh');
+                if ($cn !== null && $cn !== '' && $cn !== $text) {
+                    self::apcSet($key, $cn);
+                    return ['cn' => $cn, 'cached' => false, 'confidence' => 1, 'source' => 'local'];
+                }
+                // local-only 模式：本地失败就停
+                if ($source === 'local') {
+                    Logger::warn('translator.local_only_fail', ['q' => $text]);
+                    return ['cn' => '', 'cached' => false, 'confidence' => 0, 'source' => 'local_fail'];
+                }
+            }
+        }
+
+        // 3) AI 翻译（DeepSeek，fallback 模式的下一站，local 模式跳过）
+        if ($source !== 'local' && DeepSeekHelper::isEnabled() && $autoTranslate) {
             $cn = AiAdvisor::translateTag($text);
             if ($cn !== '' && $cn !== $text) {
                 self::apcSet($key, $cn);
@@ -52,32 +75,22 @@ class Translator {
             }
         }
 
-        // 3) 本地翻译（用户自配 LibreTranslate / OPUS-MT，可选）
-        if (Settings::getLocalTranslateEnabled()) {
-            $localUrl = Settings::getLocalTranslateUrl();
-            if ($localUrl) {
-                $cn = self::callLocalTranslate($localUrl, $text);
-                if ($cn !== null && $cn !== '' && $cn !== $text) {
-                    self::apcSet($key, $cn);
-                    return ['cn' => $cn, 'cached' => false, 'confidence' => 1, 'source' => 'local'];
-                }
+        // 4) 在线翻译（fallback 模式最后兜底，local 模式跳过，off 模式也走）
+        if ($source !== 'local') {
+            $online = self::callOnlineTranslate($text);
+            if ($online !== null) {
+                self::apcSet($key, $online['cn']);
+                return [
+                    'cn'         => $online['cn'],
+                    'cached'     => false,
+                    'confidence' => $online['confidence'],
+                    'source'     => $online['source'],
+                ];
             }
         }
 
-        // 4) 在线翻译（多源 fallback：MyMemory → LibreTranslate 公共实例）
-        $online = self::callOnlineTranslate($text);
-        if ($online !== null) {
-            self::apcSet($key, $online['cn']);
-            return [
-                'cn'         => $online['cn'],
-                'cached'     => false,
-                'confidence' => $online['confidence'],
-                'source'     => $online['source'],
-            ];
-        }
-
         // 全失败
-        Logger::warn('translator.all_fail', ['q' => $text]);
+        Logger::warn('translator.all_fail', ['q' => $text, 'source' => $source]);
         return ['cn' => '', 'cached' => false, 'confidence' => 0, 'source' => 'fail'];
 
         $j = json_decode($body, true);
@@ -138,13 +151,13 @@ class Translator {
      * POST {url}/translate  body: {q, source:'en', target:'zh', format:'text'}
      * Returns CN string, or null on failure.
      */
-    public static function callLocalTranslate(string $baseUrl, string $text, int $timeout = 4): ?string {
+    public static function callLocalTranslate(string $baseUrl, string $text, int $timeout = 4, string $source = 'en', string $target = 'zh'): ?string {
         $baseUrl = rtrim($baseUrl, '/');
         $endpoint = $baseUrl . '/translate';
         $payload = json_encode([
             'q'      => str_replace('_', ' ', $text),
-            'source' => 'en',
-            'target' => 'zh',
+            'source' => $source,
+            'target' => $target,
             'format' => 'text',
         ], JSON_UNESCAPED_UNICODE);
 
@@ -240,11 +253,69 @@ class Translator {
             return ['en' => $cache, 'source' => 'memory', 'confidence' => 1];
         }
 
-        $r = self::callOnlineTranslateZhToEn($text);
-        if ($r !== null) {
-            self::apcSet($key, $r['en']);
+        // v1.1.4 三级翻译源（zh→en 方向）：
+        //   local    — 只用本地 OPUS-MT（注意：OPUS-MT 只有 en→zh 模型，zh→en 会失败）
+        //   fallback — 本地 → AI → 在线
+        //   off      — 跳过本地（与 fallback 类似但避免潜在本地回环）
+        $source = Settings::getTranslateSource();
+
+        // 本地翻译（zh→en OPUS-MT 不支持，user 配了 local 也会失败）
+        if ($source !== 'off' && Settings::getLocalTranslateEnabled()) {
+            $localUrl = Settings::getLocalTranslateUrl();
+            if ($localUrl) {
+                $r = self::callLocalTranslateZhToEn($localUrl, $text);
+                if ($r !== null && $r !== '' && !preg_match('/[\x{4e00}-\x{9fff}]/u', $r)) {
+                    self::apcSet($key, $r);
+                    return ['en' => $r, 'source' => 'local', 'confidence' => 1];
+                }
+                if ($source === 'local') {
+                    Logger::warn('translator.zh2en.local_only_fail', ['q' => $text]);
+                    return null;
+                }
+            }
         }
-        return $r;
+
+        // AI 兜底（DeepSeek，反向翻译）
+        if ($source !== 'local' && DeepSeekHelper::isEnabled()) {
+            $en = self::callAiZhToEn($text);
+            if ($en !== '' && $en !== $text && !preg_match('/[\x{4e00}-\x{9fff}]/u', $en)) {
+                self::apcSet($key, $en);
+                return ['en' => $en, 'source' => 'deepseek', 'confidence' => 0.9];
+            }
+        }
+
+        // 在线（fallback/off 模式最后兜底，local 模式跳过）
+        if ($source !== 'local') {
+            $r = self::callOnlineTranslateZhToEn($text);
+            if ($r !== null) {
+                self::apcSet($key, $r['en']);
+            }
+            return $r;
+        }
+
+        return null;
+    }
+
+    /** 调本地 NLLB 走 zh→en（v1.1.4+ 改用 NLLB-200 双向） */
+    private static function callLocalTranslateZhToEn(string $baseUrl, string $text): ?string {
+        return self::callLocalTranslate($baseUrl, $text, 4, 'zh', 'en');
+    }
+
+    /** DeepSeek 反向翻译（中文 → 英文 Danbooru tag） */
+    private static function callAiZhToEn(string $text): string {
+        $system = '你是 Danbooru 标签专家，专门把中文描述翻译成最匹配的英文 Danbooru tag（下划线分隔，全小写）。只输出英文 tag，不要解释。例如：马尾 → ponytail，长发 → long_hair。';
+        try {
+            $r = AiProvider::chatSimple($system, $text, [
+                'temperature' => 0.1,
+                'max_tokens'  => 30,
+            ]);
+            $en = trim($r['content']);
+            $en = preg_replace('/^["\'\s]+|["\'\s]+$/u', '', $en);
+            return $en;
+        } catch (\Throwable $e) {
+            Logger::warn('translator.ai.zh2en.fail', ['err' => $e->getMessage()]);
+            return '';
+        }
     }
 
     /**

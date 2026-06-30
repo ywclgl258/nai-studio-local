@@ -1,9 +1,6 @@
 @echo off
 REM =============================================================================
-REM  NAI Studio - one-click stop
-REM
-REM  Kills any process listening on port 8080 (the PHP built-in server).
-REM  Also reachable from the nai-studio settings page -> Backend Status.
+REM  NAI Studio - One-click stop
 REM =============================================================================
 chcp 65001 > nul
 setlocal

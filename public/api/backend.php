@@ -143,6 +143,18 @@ if ($action === 'start') {
 }
 
 if ($action === 'stop') {
+    // 自杀防护：不能在 8080 端口调用 stop，会把当前 PHP server 进程杀掉
+    // 实际想停服务请用 stop.bat 或 taskkill
+    if ((int)($_SERVER['SERVER_PORT'] ?? 0) === $port) {
+        http_response_code(503);
+        echo json_encode([
+            'ok' => false,
+            'error' => 'cannot_stop_self',
+            'message' => "不能在 8080 端口调用 stop（自杀风险）。请用 tools/stop.bat 或 taskkill /F /FI \"WINDOWTITLE eq *nai-studio*\"" . '。',
+            'log' => ['拒绝执行：调用来自 PHP server 自己所在的端口'],
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     $log = killPort($port);
     @unlink($pidFile);
     Logger::info('backend.stop', $log);

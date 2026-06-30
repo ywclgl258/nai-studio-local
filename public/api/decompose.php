@@ -60,9 +60,21 @@ if ($method === 'GET' && $action === 'lookup') {
         [strtolower($q)]
     );
     if (!$row) {
-        // 兜底：内置字典
+        // miss：先查内置字典；中文输入再走翻译兜底
         $cn = \NaiStudio\TagDict::lookup($q);
-        ok_response(['name' => strtolower($q), 'cn' => $cn, 'category' => 0, 'source' => $cn ? 'builtin' : 'miss']);
+        $enGuess = null;
+        $hasCjk = preg_match('/[\x{4e00}-\x{9fff}]/u', $q);
+        if ($hasCjk) {
+            $tr = \NaiStudio\Translator::zhToEn($q);
+            $enGuess = $tr['en'] ?? null;
+        }
+        ok_response([
+            'name'     => strtolower($q),
+            'cn'       => $cn,
+            'en_guess' => $enGuess,
+            'category' => 0,
+            'source'   => $cn ? 'builtin' : ($enGuess ? 'translated' : 'miss'),
+        ]);
         exit;
     }
     ok_response([

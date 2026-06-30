@@ -202,16 +202,41 @@ switch ($action) {
     // ===== 重新翻译一个 tag（单条重译） =====
     case 'translate_one': {
         if ($method !== 'POST') error_response('Method not allowed', 405);
-        $name = trim((string)($_POST['name'] ?? ''));
+        $b = read_json_body();
+        $name = trim((string)($b['name'] ?? ''));
         if ($name === '') error_response('name required', 400);
 
-        // 跳过非英文（避免翻译中文 tag 本身）
-        if (preg_match('/[\x{4e00}-\x{9fff}]/u', $name)) {
-            error_response('name 是中文，不需要翻译', 400);
+        // 中文 → 先 zhToEn 找对应英文 tag，再用英文 tag 走正常翻译流
+        $isChinese = preg_match('/[\x{4e00}-\x{9fff}]/u', $name);
+        if ($isChinese) {
+            $tr = \NaiStudio\Translator::zhToEn($name);
+            $enGuess = $tr['en'] ?? '';
+            if ($enGuess === '' || $enGuess === $name) {
+                ok_response([
+                    'name'   => $name,
+                    'ok'     => false,
+                    'reason' => 'no_english_match',
+                    'hint'   => '未找到对应的英文 Danbooru tag，请手动输入英文 tag',
+                ]);
+                exit;
+            }
+            // 找到英文 → 用英文继续翻译（en → zh）
+            $row = Db::fetchOne('SELECT name, cn_name FROM tags WHERE name = ?', [strtolower($enGuess)]);
+            if (!$row) {
+                ok_response([
+                    'name'      => $name,
+                    'en_guess'  => $enGuess,
+                    'ok'        => false,
+                    'reason'    => 'tag_not_in_local_cache',
+                    'hint'      => "已翻译为英文 \"$enGuess\"，但本地标签库没有这个 tag，请先在搜索框搜这个英文名再翻译",
+                ]);
+                exit;
+            }
+            $name = $row['name']; // 切到英文名继续
+        } else {
+            $row = Db::fetchOne('SELECT name, cn_name FROM tags WHERE name = ?', [strtolower($name)]);
+            if (!$row) error_response('tag not found', 404);
         }
-
-        $row = Db::fetchOne('SELECT name, cn_name FROM tags WHERE name = ?', [$name]);
-        if (!$row) error_response('tag not found', 404);
 
         // 优先 TagDict 字典
         $cn = \NaiStudio\TagDict::lookup($name);

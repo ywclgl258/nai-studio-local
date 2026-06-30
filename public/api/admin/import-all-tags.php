@@ -117,13 +117,47 @@ if (PHP_SAPI === 'cli') {
     exit(0);
 }
 
-// ===== Web 模式：不能 spawn（mod_php 无 COM），让用户跑 CLI =====
+// ===== Web 模式 =====
 set_time_limit(30);
 $self = __FILE__;
-$php = PHP_BINARY ?: 'C:\\xampp\\php\\php.exe';
+$php = PHP_BINARY ?: 'php';
 $cliLog = __DIR__ . '/../../../storage/cache/import-cli.log';
 
-// 给用户复制粘贴的完整命令
+$sapi = PHP_SAPI ?? '';
+$canSpawn = in_array($sapi, ['cli-server', 'cli'], true);
+
+if ($canSpawn) {
+    // PHP built-in server / CLI: 用 vbs 包裹启动 CLI 进程，HTTP 立即返回
+    $stateFileEsc = '"' . str_replace('/', '\\', $stateFile) . '"';
+    $cliLogEsc    = '"' . str_replace('/', '\\', $cliLog) . '"';
+    $cmd = sprintf(
+        '"%s" "%s" --min_posts=%d --max_pages=%d --with_images=%d --cli',
+        str_replace('/', '\\', $php),
+        str_replace('/', '\\', $self),
+        $minPosts, $maxPages, $withImages ? 1 : 0
+    );
+    // 写状态
+    $s = readState($stateFile);
+    $s['status'] = 'running'; $s['started_at'] = date('Y-m-d H:i:s');
+    $s['message'] = '已 spawn 后台进程';
+    writeState($stateFile, $s);
+
+    $vbs = sys_get_temp_dir() . '\\nai_import_cli.vbs';
+    file_put_contents($vbs, "Set WshShell = CreateObject(\"WScript.Shell\")\r\nWshShell.Run \"\"\"cmd.exe\"\" /c \"\"\"$cmd > $cliLogEsc 2>&1\"\"\"\", 0, False\r\n");
+    pclose(popen('cmd /c start /min "" wscript "' . $vbs . '"', 'r'));
+
+    ok_response([
+        'ok'      => true,
+        'method'  => 'detached_cli',
+        'message' => '已启动后台进程（独立 PHP 进程，不阻塞 server）',
+        'log'     => $cliLog,
+        'state'   => $stateFile,
+        'state_now' => readState($stateFile),
+    ]);
+    exit;
+}
+
+// 兜底：mod_php / Apache（不能 spawn），让用户手动跑
 $cmd = sprintf(
     'cd /d "%s" && "%s" "%s" --min_posts=%d --max_pages=%d --cli',
     str_replace('/', '\\', dirname($self, 3)),
@@ -136,14 +170,14 @@ $cmd = sprintf(
 ok_response([
     'ok'      => true,
     'method'  => 'manual_cli',
-    'reason'  => 'mod_php (Apache) 不支持 COM/spawn 后台进程',
+    'reason'  => 'mod_php (Apache) 不支持 spawn 后台进程',
     'command' => $cmd,
     'log'     => $cliLog,
     'state'   => $stateFile,
     'message' => '请在终端跑下面命令（独立进程, 可关浏览器）',
     'note'    => '进度查 status，或在终端看 ' . $cliLog,
 ]);
-exit(0);
+exit;
 
 // =================================================================
 // CLI 实际跑的工作

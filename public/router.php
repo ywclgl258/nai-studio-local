@@ -24,30 +24,35 @@ if (strpos($uri, '/nai-studio') === 0) {
 // 真实文件路径
 $file = __DIR__ . $uri;
 
-// /storage/... 特殊处理：项目根 storage/ 目录的图片（如 tag-previews）
-//   因为 PHP 内置 server 文档根是 public/，访问不到 storage/
-//   把 /storage/* 映射到 <project_root>/storage/*
+// /storage/... 特殊处理
+//   v1.1.4 之前：项目根 storage/ 目录
+//   v1.1.4+ portable 模式：user-data/storage/（用户数据隔离）
+//   优先用 user-data，fallback 到老路径（兼容老 user）
 if (strpos($uri, '/storage/') === 0) {
-    $rootStorage = dirname(__DIR__) . $uri;  // D:\anima\nai-studio\storage\...
-    if (file_exists($rootStorage) && !is_dir($rootStorage)) {
-        $ext = strtolower(pathinfo($rootStorage, PATHINFO_EXTENSION));
-        $mime = [
-            'jpg'  => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png'  => 'image/png',
-            'gif'  => 'image/gif',
-            'webp' => 'image/webp',
-            'svg'  => 'image/svg+xml',
-        ];
-        if (isset($mime[$ext])) {
-            header('Content-Type: ' . $mime[$ext]);
-            header('Content-Length: ' . filesize($rootStorage));
-            header('Cache-Control: public, max-age=86400');
-            readfile($rootStorage);
+    $userDataStorage = dirname(__DIR__) . '/user-data' . $uri;  // v1.1.4+ 新位置
+    $rootStorage     = dirname(__DIR__) . $uri;                // 老位置
+    $candidates = file_exists($userDataStorage) ? [$userDataStorage, $rootStorage] : [$rootStorage, $userDataStorage];
+    foreach ($candidates as $storage) {
+        if (file_exists($storage) && !is_dir($storage)) {
+            $ext = strtolower(pathinfo($storage, PATHINFO_EXTENSION));
+            $mime = [
+                'jpg'  => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png'  => 'image/png',
+                'gif'  => 'image/gif',
+                'webp' => 'image/webp',
+                'svg'  => 'image/svg+xml',
+            ];
+            if (isset($mime[$ext])) {
+                header('Content-Type: ' . $mime[$ext]);
+                header('Content-Length: ' . filesize($storage));
+                header('Cache-Control: public, max-age=86400');
+                readfile($storage);
+                exit;
+            }
+            readfile($storage);
             exit;
         }
-        readfile($rootStorage);
-        exit;
     }
     // 文件不存在：让 API 处理（见 api/tag_image.php?action=fetch）
 }

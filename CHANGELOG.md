@@ -11,6 +11,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-06-30
+
+> 🎯 **真正零依赖便携版 + 系统级 PHP server 死锁修复**
+> 解压即跑，**无需**安装 PHP / Apache / XAMPP。修了 4 个会让 server 永久死锁的 bug。
+
+### ✨ Features
+
+- **🪶 Portable 模式**（v1.1.4+）
+  - `runtime\php\php.exe` 内置精简 PHP 8.2.12 NTS（39 MB）
+  - `runtime\php\extras\ssl\cacert.pem` Mozilla CA bundle 189KB
+  - `runtime\php\php.ini` 配 `curl.cainfo` + `openssl.cafile`（**所有 HTTPS 失败的根因**）
+  - `user-data\` 隔离用户数据（DB / 图 / 缩略图 / 日志 / 加密 API key 密文）
+  - 首次启动自动从 `user-data\data-tpl\` 复制模板
+- **🌐 本地翻译服务**（NLLB-200 distilled 600M）
+  - 三级翻译源：`off` / `fallback`（默认）/ `local`
+  - NLLB 单模型支持 200+ 语言双向翻译（en↔zh, ja↔zh, fr↔zh, …）
+  - 自动判方向（中文→zhToEn，英文→enToZh）
+  - 替代 OPUS-MT：单一模型 200+ 语言，不再切换
+  - 旧 OPUS-MT 模型已删除
+- **📦 CLI 拆分**（避免 web 死锁）
+  - `tools/expand_tags_cli.php` — 批量扩充标签
+  - `tools/fetch_all_images_cli.php` — 批量下载示例图
+  - `expand-tags.php` / `fetch_all_images.php` / `import-all-tags.php` web 端改为 spawn detached 进程
+
+### 🐛 Bug Fixes（4 个会让 server 永久死锁的关键 bug）
+
+- **🔥 致命：PHP server 自杀**
+  - 现象：调 `backend.php?action=stop` 把 PHP server 自己杀掉了
+  - 根因：killPort(8080) 杀掉监听 8080 的进程，但请求本身就是在 8080 上处理的
+  - 修法：拒绝在 SERVER_PORT=8080 调用 stop（503 + 提示用 stop.bat）
+- **🔥 致命：expand-tags.php 长任务死锁 server**
+  - 现象：调用 `expandStart` 5 秒后所有 endpoint 都 timeout
+  - 根因：`fastcgi_finish_request` 在 PHP built-in server 下无效，整个 while 循环阻塞单线程 server
+  - 修法：vbs 包裹 spawn 独立 PHP 进程，HTTP 立即返回
+- **🔥 致命：import-all-tags.php 同问题**（同修法）
+- **🔥 致命：fetch_all_images.php SSE 同问题**（同修法）
+- **🔧 拆解 `1.6::tag` 剥权重**：tag classifier 现在认 `{tag}` / `[tag]` / `N::tag` 三种权重语法
+- **🔧 danbooru.php?action=translate 自动判方向**：之前固定 zhToEn
+- **🔧 decompose.php?action=lookup miss 兜底**：miss 走 en_guess（zhToEn 翻译）
+- **🔧 tags.php?action=translate_one 3 bug**：read_json_body（前端发 JSON）+ 移除"中文拒绝"+ 中文走 zhToEn→enToZh
+- **🔧 Translator::zhToEn 加 AI 兜底**：本地翻译失败时调 DeepSeek
+- **🔧 artists.php danbooru_search 失败降级**：网络失败用本地 artist_fallback
+- **🔧 NaiApi::endpoint()**：HTTP 代理走 NAI 官方 + CURLOPT_PROXY，镜像直接拼 URL
+- **🔧 Settings::getTranslateSource() + shouldTryLocal() / shouldFallbackToOnline()**
+
+### 📝 Documentation
+
+- **README 重写**为「零依赖便携版」主打，Apache/XAMPP/MySQL/MariaDB 6 处历史残留全清
+- **start.bat 重写**：CRLF + 4 层引号去掉 + goto+label 替代 `\` 续行 + `pause` 替代 `timeout` + powershell Start-Process 兜底 explorer
+- **stop.bat 重写**：CRLF，杀 8080 端口
+- **.gitignore 修**：track `data/schema_sqlite.sql` + `translate-server/` 源码（忽略 .model-cache/node_modules/err*.log/out*.log）+ 删 stray `Stop`/`enter` 0字节文件 + 修 tests/*.php 漏 ignore
+
+### 🗄️ DB
+
+- **迁移 011**：加 `settings.translate_source TEXT DEFAULT 'fallback'` + `settings.local_translate_url` + `settings.local_translate_enabled`
+- **stale schema 标记**：`api_logs` / `precise_refs` / `tag_aliases` / `tag_prompts` / `vibe_refs` 5 个表 0 引用，未删（保留兼容）
+
+### 🎓 关键教训
+
+- **PHP built-in server 是单线程**：任何 `set_time_limit(0) + while` 在请求线程里跑都会死锁整个 server。v1.1.4 后所有长任务必须 spawn 独立 PHP 进程
+- **不要通过 web 进程自杀**：`killPort(8080)` 杀不掉自己；但能杀掉自己 listener 的所有同端口进程
+- **`fastcgi_finish_request` 只在 PHP-FPM 有效**：built-in server 下不存在（`function_exists` 返 false，但走 else 分支也没用，会一直跑）
+- **Windows CRLF 必用**：start.bat / stop.bat / .ps1 必须 CRLF + 不以 `xxx\` 结尾（cmd 续行符吞注释）
+- **curl.cainfo**：PHP 内置 curl 不带 CA 证书，所有 HTTPS 调外部 API（NAI / Danbooru / DeepSeek）都失败
+
+## [1.1.3] - 2026-06-30
+
+> ⚙️ **PHP server 状态查询 + 一键启停 + 姿势/角色预设 combobox**
+> 补齐「点一下就启停」的最后拼图
+
+### ✨ Features
+
+- **🟢 backend.php 状态 API**：`backendStatus` / `backendStart` / `backendStop`
+  - 检查 8080 端口 + DB 存在 + DB 非空 + log 文件
+  - PID 文件记录，stop 时 taskkill
+  - start 走 vbs 包裹 spawn 独立 PHP server
+- **🟢 start.bat v1.1.3**：5 步启动（user-data 检查 → DB 检查 → 清端口 → 后台启动 → 等就绪）
+- **🟢 stop.bat**：taskkill 杀 8080 端口所有进程
+- **🟢 姿势/角色预设 combobox**：v1.1.2 之前是下拉框，1.1.3 改 combobox（输入 + 列表 + 搜索）
+
 ## [1.1.2] - 2026-06-30
 
 > 🌐 **本地缓存未翻译标签：再次翻译 + 手动纠正 + 批量翻译**

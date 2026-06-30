@@ -19,13 +19,30 @@ class NaiApi {
     }
 
     /**
+     * 判断 proxy 是 HTTP 代理（Clash/v2rayN 7897）还是 NAI 镜像（mmw.ink）。
+     *  - HTTP 代理：URL 是 http://127.0.0.1:PORT  /  socks5://...  → 用 CURLOPT_PROXY，URL 仍走 NAI 官方
+     *  - NAI 镜像：URL 是 https://mirror.xxx            → 直接拼路径当镜像
+     */
+    private function isHttpProxy(string $url): bool {
+        return (bool)preg_match('#^(http://127\.0\.0\.1|socks5://)#i', $url);
+    }
+
+    /** NAI 实际请求的 URL（HTTP 代理模式 → 走 NAI 官方；镜像模式 → 走镜像） */
+    private function endpoint(string $path, string $fallbackConfig): string {
+        if (!$this->proxy) return config($fallbackConfig);
+        if ($this->isHttpProxy($this->proxy)) return config($fallbackConfig);
+        // 镜像模式：拼到代理 URL
+        return rtrim($this->proxy, '/') . $path;
+    }
+
+    /**
      * Generate image(s).
      * @param array $payload Full NAI generate-image payload
      * @return array{ok:bool, status:int, data:?string, error:?string, headers?:array}
      *   data = base64 PNG (single) or array of base64 PNGs
      */
     public function generate(array $payload): array {
-        $url = $this->proxy ? rtrim($this->proxy, '/') . '/ai/generate-image' : config('nai.generate_url');
+        $url = $this->endpoint('/ai/generate-image', 'nai.generate_url');
         $start = microtime(true);
         // post() 内部已加 Accept / Content-Type / Authorization，这里只传业务 headers
         $resp = $this->post($url, $payload);
@@ -106,7 +123,7 @@ class NaiApi {
 
     /** Get anlas balance. Returns ['ok'=>bool, 'anlas'=>?int, 'expiresAt'=>?int, 'error'=>?string]. */
     public function getAnlas(): array {
-        $url = $this->proxy ? rtrim($this->proxy, '/') . '/user/subscription' : config('nai.user_url');
+        $url = $this->endpoint('/user/subscription', 'nai.user_url');
         $resp = $this->get($url);
         if (!$resp['ok']) {
             return ['ok' => false, 'anlas' => null, 'error' => $resp['error'] ?? 'Anlas query failed'];

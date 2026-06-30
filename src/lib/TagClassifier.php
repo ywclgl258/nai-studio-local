@@ -270,10 +270,17 @@ class TagClassifier {
             foreach ($chunks as $c) {
                 $name = trim($c);
                 if ($name === '' || $name === ',') continue;
+                // 剥前缀权重 N::tag → tag, weight=N（无 {} 的 Danbooru 风格权重）
+                $tagName = $name;
+                $tagWeight = 1.0;
+                if (preg_match('/^(\d+(?:\.\d+)?)::(.+)$/', $name, $m)) {
+                    $tagName = trim($m[2]);
+                    $tagWeight = (float)$m[1];
+                }
                 $flatTags[] = [
-                    'name'   => $name,
-                    'tag'    => $name,
-                    'weight' => 1.0,
+                    'name'   => $tagName,
+                    'tag'    => $tagName,
+                    'weight' => $tagWeight,
                     'raw'    => $c,
                 ];
             }

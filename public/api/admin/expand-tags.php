@@ -97,21 +97,45 @@ if ($action === 'start') {
     ];
     writeState($stateFile, $state);
 
-    // 关闭前端连接，让脚本继续
-    if (function_exists('fastcgi_finish_request')) {
-        // 输出 + 关闭
-        echo json_encode(['ok' => true, 'message' => '已启动后台扩充'], JSON_UNESCAPED_UNICODE);
-        fastcgi_finish_request();
-    } else {
-        echo json_encode(['ok' => true, 'message' => '已启动扩充', 'note' => '请勿关闭浏览器'], JSON_UNESCAPED_UNICODE);
-    }
-
-    // 拉取 + 处理
-    $page = 1;
-    $processed = 0;
-    $state['total'] = $maxPages * 1000;
+    // 不要在请求线程里跑！PHP built-in server 是单线程，这里阻塞会挂死整个 server
+    // 改成用 spawnDetached() 把工作丢到独立 PHP 进程，立即返回给客户端
     $logFile = __DIR__ . '/../../../storage/cache/expand.log';
-    @file_put_contents($logFile, "[" . date('H:i:s') . "] start min_posts={$minPosts} max_pages={$maxPages}\n", FILE_APPEND);
+    $state['total'] = $maxPages * 1000;
+    writeState($stateFile, $state);
+
+    $phpExe = realpath(__DIR__ . '/../../../runtime/php/php.exe') ?: 'php';
+    $cliScript = realpath(__DIR__ . '/../../../tools/expand_tags_cli.php') ?: null;
+    if (!$cliScript || !file_exists($cliScript)) {
+        // 兜底：在 web 进程内跑（仅当 CLI 脚本不存在；要求 PHP-FPM/Apache，不能是 built-in）
+        @file_put_contents($logFile, "[" . date('H:i:s') . "] start min_posts={$minPosts} max_pages={$maxPages} (in-process fallback)\n", FILE_APPEND);
+        if (function_exists('fastcgi_finish_request')) {
+            echo json_encode(['ok' => true, 'message' => '已启动后台扩充（CLI 模式）'], JSON_UNESCAPED_UNICODE);
+            fastcgi_finish_request();
+        } else {
+            echo json_encode(['ok' => true, 'message' => '已启动扩充', 'note' => '请勿关闭浏览器（仅在 Apache/FPM 下工作）'], JSON_UNESCAPED_UNICODE);
+        }
+        $page = 1; $processed = 0;
+    } else {
+        // 真正的后台：spawn 独立 PHP 进程
+        @file_put_contents($logFile, "[" . date('H:i:s') . "] start min_posts={$minPosts} max_pages={$maxPages} (detached cli)\n", FILE_APPEND);
+        $stateFileEsc = '"' . str_replace('/', '\\', $stateFile) . '"';
+        $logFileEsc   = '"' . str_replace('/', '\\', $logFile) . '"';
+        $root         = realpath(__DIR__ . '/../../..');
+        $cmd = '"' . str_replace('/', '\\', $phpExe) . '" "' . str_replace('/', '\\', $cliScript) . '" '
+             . '--min-posts=' . $minPosts . ' --max-pages=' . $maxPages . ' '
+             . '--with-images=' . ($withImages ? '1' : '0') . ' '
+             . '--state-file=' . $stateFileEsc . ' --log-file=' . $logFileEsc;
+        // 用 vbs 包裹启动，进程立即脱离 PHP
+        $vbs = sys_get_temp_dir() . '\\nai_expand_cli.vbs';
+        file_put_contents($vbs, "Set WshShell = CreateObject(\"WScript.Shell\")\r\nWshShell.Run \"\"\"cmd.exe\"\" /c \"\"\"$cmd\"\"\"\", 0, False\r\n");
+        pclose(popen('cmd /c start /min "" wscript "' . $vbs . '"', 'r'));
+        echo json_encode([
+            'ok' => true,
+            'message' => "已启动后台扩充（独立进程，PID 见 log）",
+            'state' => readState($stateFile),
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
     while ($page <= $maxPages) {
         // 1) 拉这一页的标签（用 curl，PHP stream 在 Windows 上经常 timeout）

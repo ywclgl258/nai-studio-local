@@ -150,8 +150,10 @@ async function save() {
         quality_toggle:   _els.quality.checked ? 1 : 0,
         proxy_enabled:    _els.proxyEnabled?.checked ? 1 : 0,
         proxy_url:        _els.proxyUrl?.value.trim() || '',
-        local_translate_enabled: _els.localTranslateEnabled?.checked ? 1 : 0,
+        translate_source: _els.translateSource?.value || 'fallback',  // v1.1.4: off | fallback | local
         local_translate_url:     _els.localTranslateUrl?.value.trim() || '',
+        // local_translate_enabled 旧字段：fallback/local 时设 1，off 时设 0
+        local_translate_enabled: (_els.translateSource?.value === 'off') ? 0 : 1,
         aggressive_fallback_enabled: _els.aggressiveFallback?.checked ? 1 : 0,
     };
     try {
@@ -204,11 +206,12 @@ async function testLocalTranslate() {
     _els.localTranslateStatus.style.color = 'var(--text-muted)';
     try {
         // 保存当前值再测
-        const enabled = _els.localTranslateEnabled?.checked;
+        const source = _els.translateSource?.value || 'fallback';
         const url = _els.localTranslateUrl?.value.trim();
         await api.updateSettings({
-            local_translate_enabled: enabled ? 1 : 0,
+            translate_source: source,
             local_translate_url: url || '',
+            local_translate_enabled: (source === 'off') ? 0 : 1,
         });
         const r = await api.testLocalTranslate();
         _els.localTranslateStatus.textContent = r.message || (r.ok ? '✓ 可用' : '✗ 失败');
@@ -381,6 +384,7 @@ export function initSettings() {
         proxyUrl: document.getElementById('settingsProxy'),
         proxyTestStatus: document.getElementById('proxyTestStatus'),
         localTranslateEnabled: document.getElementById('settingsLocalTranslateEnabled'),
+        translateSource: document.getElementById('settingsTranslateSource'),
         localTranslateUrl: document.getElementById('settingsLocalTranslateUrl'),
         localTranslateStatus: document.getElementById('localTranslateStatus'),
         aggressiveFallback: document.getElementById('settingsAggressiveFallback'),
@@ -426,7 +430,11 @@ export function initSettings() {
             _els.proxyTestStatus.textContent = s.proxy_test_status;
             _els.proxyTestStatus.style.color = s.proxy_test_status.startsWith('ok:') ? 'var(--success)' : 'var(--danger)';
         }
-        if (_els.localTranslateEnabled) _els.localTranslateEnabled.checked = !!s.local_translate_enabled;
+        if (_els.translateSource) {
+            // v1.1.4: 优先用 translate_source；旧 user fallback 到 local_translate_enabled
+            const v = s.translate_source || (s.local_translate_enabled ? 'fallback' : 'off');
+            _els.translateSource.value = v;
+        }
         if (_els.localTranslateUrl) _els.localTranslateUrl.value = s.local_translate_url || '';
         if (_els.localTranslateStatus && s.local_translate_status) {
             _els.localTranslateStatus.textContent = s.local_translate_status;

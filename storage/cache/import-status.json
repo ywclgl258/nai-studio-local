@@ -1,6 +1,6 @@
 {
-    "status": "starting",
-    "started_at": "2026-06-28 19:02:24",
+    "status": "stopped",
+    "started_at": "2026-06-30 19:22:14",
     "progress": 1500,
     "pages_done": 2,
     "pages_total": 2,
@@ -15,5 +15,5 @@
     "current_page": 2,
     "current_tag": "the_best_of_tpz_2_the_best!!!",
     "last_error": "",
-    "message": "正在 spawn PHP 进程（min_posts=1, max_pages=500）"
+    "message": "已请求停止"
 }

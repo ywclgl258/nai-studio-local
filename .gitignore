@@ -34,6 +34,31 @@ data/*.db.old-*
 # 备份（mysqldump / 自动备份产物）
 data/backups/
 
+# === translate-server/ 本地翻译服务 ===
+# 跟踪源代码（server.js / start.bat / stop.bat / package.json / download_*.ps1 / fix_*.ps1 / README.md）
+# 忽略大文件和临时日志
+translate-server/node_modules/
+translate-server/.model-cache/
+translate-server/err*.log
+translate-server/out*.log
+translate-server/*.tmp
+
+# === 临时 / 测试文件（项目根散落的）===
+# 用户用 'Stop' / 'enter' 之类命令偶然创建的空文件
+/Stop
+/enter
+
+# === v1.1.4 portable 模式：用户运行时数据 + PHP runtime ===
+# user-data/ 含用户全部运行时数据（DB + 图 + 缩略图 + 日志 + 加密 API key 密文）
+# 首次启动 start.bat 后自动从 user-data/data-tpl/ 复制模板创建
+# 整个目录都可以安全备份 / 移动——**绝不**应入版本库
+user-data/
+
+# runtime/ 含 PHP 8.2 NTS 精简版（~39 MB 二进制 + DLL）
+# 用户首次启动时项目自带；如缺失运行 tools/_setup_php.py 重新下载
+# 体积大且与平台强相关，**绝不**应入版本库
+runtime/
+
 # === 敏感信息（防御性）===
 .env
 .env.local
@@ -44,8 +69,31 @@ secret*.json
 secrets/
 
 # === 临时 / 测试文件 ===
+# 临时目录
 tests/tmp/
 tests/cache/
+# 调试 / 一次性测试脚本（任意前缀）
+tests/_*.php
+tests/_*.py
+tests/*-debug.php
+tests/add-fallback-col.php
+tests/cleanup-artists.php
+tests/desc-settings.php
+tests/run-migration-*.php
+tests/test-artist-*.php
+tests/test-decompose*.php
+tests/test-google-fallback.php
+tests/test-parser.php
+tests/test-splitter.php
+tests/test-with-google.php
+# tools 下的临时 / 调试 / PowerShell 调试
+tools/_*.py
+tools/_*.php
+tools/_*.json
+tools/_*.out
+tools/_*.err
+tools/_*.log
+# 通用临时 / 备份
 *.tmp
 *.bak
 *.swp

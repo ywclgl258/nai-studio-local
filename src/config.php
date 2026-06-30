@@ -6,17 +6,40 @@
 
 declare(strict_types=1);
 
+// ============================================================
+//  Portable 模式：用户数据写到 user-data\（首次启动由 start.bat 创建）
+//  这样 git pull / 重新解压项目时不会丢失 API key / 提示词 / 历史
+// ============================================================
+$rootPath    = dirname(__DIR__);
+$userData    = $rootPath . '/user-data';
+$useUserData = is_dir($userData);
+
+// 第一次启动时从 data-tpl 复制模板
+if ($useUserData && !file_exists($userData . '/nai-studio.db') && file_exists($userData . '/data-tpl/nai-studio.db')) {
+    @copy($userData . '/data-tpl/nai-studio.db', $userData . '/nai-studio.db');
+}
+
+$dbFile     = $useUserData ? ($userData . '/nai-studio.db') : ($rootPath . '/data/nai-studio.db');
+$storageDir = $useUserData ? ($userData . '/storage') : ($rootPath . '/public/storage');
+$logDir     = $useUserData ? ($userData . '/logs') : ($rootPath . '/public/storage/logs');
+
+// 确保目录存在
+foreach ([$storageDir, $storageDir . '/images', $storageDir . '/thumbs', $storageDir . '/uploads', $storageDir . '/cache', $logDir] as $d) {
+    if ($useUserData && !is_dir($d)) @mkdir($d, 0777, true);
+}
+
 return [
     // --- Paths ---
     'paths' => [
-        'root'         => dirname(__DIR__),                      // D:\anima\nai-studio
-        'public'       => dirname(__DIR__) . '/public',          // D:\anima\nai-studio\public
-        'storage'      => dirname(__DIR__) . '/public/storage',
-        'images'       => dirname(__DIR__) . '/public/storage/images',
-        'thumbs'       => dirname(__DIR__) . '/public/storage/thumbs',
-        'uploads'      => dirname(__DIR__) . '/public/storage/uploads',
-        'cache'        => dirname(__DIR__) . '/public/storage/cache',
-        'logs'         => dirname(__DIR__) . '/public/storage/logs',
+        'root'         => $rootPath,
+        'public'       => $rootPath . '/public',
+        'storage'      => $storageDir,
+        'images'       => $storageDir . '/images',
+        'thumbs'       => $storageDir . '/thumbs',
+        'uploads'      => $storageDir . '/uploads',
+        'cache'        => $storageDir . '/cache',
+        'logs'         => $logDir,
+        'userdata'     => $useUserData ? $userData : null,
     ],
 
     // --- Database ---
@@ -25,7 +48,7 @@ return [
         'driver' => 'sqlite',
 
         // SQLite 单文件路径
-        'sqlite_path' => dirname(__DIR__) . '/data/nai-studio.db',
+        'sqlite_path' => $dbFile,
 
         // MySQL 配置（仅当 driver='mysql' 时生效）
         'mysql' => [
