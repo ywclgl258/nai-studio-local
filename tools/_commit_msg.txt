@@ -1,14 +1,18 @@
-fix(mention): regex literal / in char class breaks parser
+feat(mention): remove broken combobox UI, keep only textarea + /
 
-The regex `/(^|[^\w/])(/[A-Za-z0-9_]*)$/` was failing at runtime
-because the `/` inside the character class `[^\w/]` made the JS
-parser terminate the regex literal early:
+The pose / character editors had:
+  - 13x13 invisible "save" button
+  - broken preset-combobox (no CSS = default browser rendering)
+  - manage button
+  - kind badge
 
-  Invalid regular expression: /(^|[^\w/])(/: Unterminated group
+This created 4 dead-looking elements that confused users about what
+"preset selection" means. With mention-popup, the textarea `/` trigger
+is the new primary path.
 
-Page was stuck loading because this error fired during initial
-mention module load. Fix: use `new RegExp()` constructor with
-string pattern (no parser ambiguity).
+Replaced all that with a single clean toolbar row:
+  - tip: "在文本里输 / 弹出预设候选" (with kbd-styled /)
+  - save button (bigger, 14x14 icon + "保存当前" text)
 
-Also: subscribe() was called with single fn arg, leaving fn=undefined
-and key=fn-string. Fixed to pass proper keys array.
+Net result: cleaner UI, single mental model (textarea = input, /
+= insert preset).

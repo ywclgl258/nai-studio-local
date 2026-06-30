@@ -3704,6 +3704,50 @@ button.ghost-button.small {
 }
 
 /* ====================================================================== */
+/* @-mention 工具条（textarea 下面的提示行）                                */
+/* ====================================================================== */
+.mention-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 4px 2px;
+    font-size: 11px;
+    color: var(--text-muted, #9ca3af);
+}
+.mention-tip kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    margin: 0 1px;
+    font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text, #e5e7eb);
+    background: var(--surface-2, #2a2a30);
+    border: 1px solid var(--border, #38383f);
+    border-radius: 4px;
+    vertical-align: 1px;
+}
+.mention-toolbar .link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--primary, #7c5cff);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+.mention-toolbar .link-button:hover {
+    background: var(--primary-15, rgba(124,92,255,.15));
+    border-color: var(--primary, #7c5cff);
+}
+
+/* ====================================================================== */
 /* @-mention preset popup (textarea 内 /xxx 触发)                         */
 /* ====================================================================== */
 .mention-popup {

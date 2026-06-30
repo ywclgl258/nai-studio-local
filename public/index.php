@@ -217,39 +217,23 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                             添加角色
                         </button>
                     </div>
-                    <div class="pose-action-row preset-row-kind-character" data-kind="character">
-                        <span class="preset-kind-badge" data-kind="character" title="角色预设">👤 角色</span>
+                    <div class="mention-toolbar">
+                        <span class="mention-tip">在角色框里输 <kbd>/</kbd> 弹出预设候选</span>
                         <button class="link-button" id="characterSavePresetBtn" title="把当前所有角色提示词存为预设">
-                            <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
-                            保存为预设
+                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
+                            保存当前
                         </button>
-                        <div class="preset-select" id="characterPresetSelect" title="选择角色预设载入"></div>
-                        <button class="icon-button small ghost" id="characterPresetManageBtn" title="管理预设（收藏/删除/重命名）">
-                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
-                        </button>
-                    </div>
-                    <div class="character-preset-panel hidden" id="characterPresetPanel">
-                        <p class="preset-panel-hint">★ = 收藏 · 收藏的预设排在前面</p>
-                        <div id="characterPresetList"></div>
                     </div>
                 </div>
                 <div class="prompt-editor hidden" id="poseEditor">
                     <p class="pose-hint-text">默认追加到主提示词末尾 · 可保存为预设方便一键载入</p>
-                    <textarea id="poseInput" class="prompt-input pose-input" rows="3" spellcheck="false" data-mention-kind="pose" placeholder="例：standing, hands at sides, ...  · 输 / 插入姿势预设"></textarea>
-                    <div class="pose-action-row preset-row-kind-pose" data-kind="pose">
-                        <span class="preset-kind-badge" data-kind="pose" title="姿势预设">🧍 姿势</span>
+                    <textarea id="poseInput" class="prompt-input pose-input" rows="3" spellcheck="false" data-mention-kind="pose" placeholder="例：standing, hands at sides, ...  ·  输 / 插入姿势预设"></textarea>
+                    <div class="mention-toolbar">
+                        <span class="mention-tip">在文本里输 <kbd>/</kbd> 弹出预设候选</span>
                         <button class="link-button" id="poseSavePresetBtn" title="把当前姿势提示词存为预设">
-                            <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
-                            保存为预设
+                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
+                            保存当前
                         </button>
-                        <div class="preset-select" id="posePresetSelect" title="选择姿势预设载入"></div>
-                        <button class="icon-button small ghost" id="posePresetManageBtn" title="管理预设（收藏/删除/重命名）">
-                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
-                        </button>
-                    </div>
-                    <div class="pose-preset-panel hidden" id="posePresetPanel">
-                        <p class="preset-panel-hint">★ = 收藏 · 收藏的预设排在前面</p>
-                        <div id="posePresetList"></div>
                     </div>
                 </div>
 
