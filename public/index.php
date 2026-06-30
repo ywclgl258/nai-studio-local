@@ -607,50 +607,124 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
             </div>
         </div>
         <div class="tag-picker-main">
-            <!-- 左侧：分类侧栏（本地缓存分组 / Danbooru 全部 / 姿势 / 角色 / 画师） -->
+            <!-- 左侧：分类侧栏（根据 activeTab 切换内容：搜索 / 本地缓存） -->
             <aside class="tag-picker-sidebar" id="tagPickerSidebar">
-                <button class="tag-picker-cat-btn active" data-cat="all">
-                    <span class="cat-icon">🔍</span>
-                    <span class="cat-name">全部结果</span>
-                    <span class="cat-count" id="tagPickerCatCountAll">0</span>
-                </button>
-                <button class="tag-picker-cat-btn" data-cat="local">
-                    <span class="cat-icon">📦</span>
-                    <span class="cat-name">本地缓存</span>
-                    <span class="cat-count" id="tagPickerCatCountLocal">0</span>
-                </button>
-                <button class="tag-picker-cat-btn" data-cat="online">
-                    <span class="cat-icon">🌐</span>
-                    <span class="cat-name">Danbooru</span>
-                    <span class="cat-count" id="tagPickerCatCountOnline">0</span>
-                </button>
-                <div class="tag-picker-sidebar-divider"></div>
-                <div class="tag-picker-sidebar-label">类别</div>
-                <button class="tag-picker-cat-btn" data-cat="0">
-                    <span class="cat-icon">🏷</span>
-                    <span class="cat-name">通用</span>
-                    <span class="cat-count" id="tagPickerCatCountGeneral">0</span>
-                </button>
-                <button class="tag-picker-cat-btn" data-cat="1">
-                    <span class="cat-icon">🎨</span>
-                    <span class="cat-name">画师</span>
-                    <span class="cat-count" id="tagPickerCatCountArtist">0</span>
-                </button>
-                <button class="tag-picker-cat-btn" data-cat="4">
-                    <span class="cat-icon">👤</span>
-                    <span class="cat-name">角色</span>
-                    <span class="cat-count" id="tagPickerCatCountChar">0</span>
-                </button>
-                <button class="tag-picker-cat-btn" data-cat="3">
-                    <span class="cat-icon">©</span>
-                    <span class="cat-name">版权</span>
-                    <span class="cat-count" id="tagPickerCatCountCopy">0</span>
-                </button>
-                <button class="tag-picker-cat-btn" data-cat="5">
-                    <span class="cat-icon">⚙</span>
-                    <span class="cat-name">元</span>
-                    <span class="cat-count" id="tagPickerCatCountMeta">0</span>
-                </button>
+                <!-- ===== 在线搜索 tab 用 ===== -->
+                <div class="tag-picker-sidebar-group" data-sidebar-for="search">
+                    <button class="tag-picker-cat-btn active" data-cat="all">
+                        <span class="cat-icon">🔍</span>
+                        <span class="cat-name">全部结果</span>
+                        <span class="cat-count" id="tagPickerCatCountAll">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-cat="local">
+                        <span class="cat-icon">📦</span>
+                        <span class="cat-name">本地缓存</span>
+                        <span class="cat-count" id="tagPickerCatCountLocal">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-cat="online">
+                        <span class="cat-icon">🌐</span>
+                        <span class="cat-name">Danbooru</span>
+                        <span class="cat-count" id="tagPickerCatCountOnline">0</span>
+                    </button>
+                    <div class="tag-picker-sidebar-divider"></div>
+                    <div class="tag-picker-sidebar-label">类别</div>
+                    <button class="tag-picker-cat-btn" data-cat="0">
+                        <span class="cat-icon">🏷</span>
+                        <span class="cat-name">通用</span>
+                        <span class="cat-count" id="tagPickerCatCountGeneral">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-cat="1">
+                        <span class="cat-icon">🎨</span>
+                        <span class="cat-name">画师</span>
+                        <span class="cat-count" id="tagPickerCatCountArtist">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-cat="4">
+                        <span class="cat-icon">👤</span>
+                        <span class="cat-name">角色</span>
+                        <span class="cat-count" id="tagPickerCatCountChar">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-cat="3">
+                        <span class="cat-icon">©</span>
+                        <span class="cat-name">版权</span>
+                        <span class="cat-count" id="tagPickerCatCountCopy">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-cat="5">
+                        <span class="cat-icon">⚙</span>
+                        <span class="cat-name">元</span>
+                        <span class="cat-count" id="tagPickerCatCountMeta">0</span>
+                    </button>
+                </div>
+
+                <!-- ===== 本地缓存 tab 用 ===== -->
+                <div class="tag-picker-sidebar-group hidden" data-sidebar-for="local">
+                    <button class="tag-picker-cat-btn active" data-local-cat="all">
+                        <span class="cat-icon">💾</span>
+                        <span class="cat-name">全部本地</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountAll">0</span>
+                    </button>
+                    <div class="tag-picker-sidebar-divider"></div>
+                    <div class="tag-picker-sidebar-label">预览图</div>
+                    <button class="tag-picker-cat-btn" data-local-cat="with-image">
+                        <span class="cat-icon">✅</span>
+                        <span class="cat-name">已有图</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountWith">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-cat="no-image">
+                        <span class="cat-icon">❌</span>
+                        <span class="cat-name">缺图</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountWithout">0</span>
+                    </button>
+                    <div class="tag-picker-sidebar-divider"></div>
+                    <div class="tag-picker-sidebar-label">类别</div>
+                    <button class="tag-picker-cat-btn" data-local-cat="cat-29">
+                        <span class="cat-icon">🏷</span>
+                        <span class="cat-name">通用</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountGeneral">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-cat="cat-30">
+                        <span class="cat-icon">🎨</span>
+                        <span class="cat-name">画师</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountArtist">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-cat="cat-31">
+                        <span class="cat-icon">©</span>
+                        <span class="cat-name">版权</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountCopy">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-cat="cat-32">
+                        <span class="cat-icon">👤</span>
+                        <span class="cat-name">角色</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountChar">0</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-cat="cat-33">
+                        <span class="cat-icon">⚙</span>
+                        <span class="cat-name">元数据</span>
+                        <span class="cat-count" id="tagPickerLocalCatCountMeta">0</span>
+                    </button>
+                    <div class="tag-picker-sidebar-divider"></div>
+                    <div class="tag-picker-sidebar-label">排序</div>
+                    <button class="tag-picker-cat-btn" data-local-sort="popular">
+                        <span class="cat-icon">🔥</span>
+                        <span class="cat-name">热门</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-sort="recent">
+                        <span class="cat-icon">🕐</span>
+                        <span class="cat-name">最近抓图</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-sort="name">
+                        <span class="cat-icon">🔤</span>
+                        <span class="cat-name">名字 A-Z</span>
+                    </button>
+                    <button class="tag-picker-cat-btn" data-local-sort="random">
+                        <span class="cat-icon">🎲</span>
+                        <span class="cat-name">随机</span>
+                    </button>
+                    <div class="tag-picker-sidebar-divider"></div>
+                    <button class="tag-picker-cat-btn" id="tagPickerLocalRefreshBtn" title="刷新当前页">
+                        <span class="cat-icon">🔄</span>
+                        <span class="cat-name">刷新</span>
+                    </button>
+                </div>
             </aside>
             <!-- 中间：标签网格 -->
             <div class="tag-picker-center tag-picker-center-full">
@@ -660,34 +734,6 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                         <span id="tagPickerCount">0</span> 标签
                         <span class="tag-picker-divider">·</span>
                         <span id="tagPickerTotal">0</span> 累计
-                    </div>
-                    <!-- 本地缓存 tab 的筛选条（默认隐藏，切到本地缓存 tab 时显示） -->
-                    <div class="tag-picker-local-toolbar hidden" id="tagPickerLocalToolbar">
-                        <select class="tag-picker-local-filter" id="tagPickerLocalCategory" title="按分类筛选">
-                            <option value="">全部分类</option>
-                            <option value="29">通用</option>
-                            <option value="30">画师</option>
-                            <option value="31">版权</option>
-                            <option value="32">角色</option>
-                            <option value="33">元数据</option>
-                            <option value="34">质量</option>
-                            <option value="35">风格</option>
-                            <option value="36">环境</option>
-                        </select>
-                        <select class="tag-picker-local-filter" id="tagPickerLocalHasImage" title="按是否有预览图筛选">
-                            <option value="">全部</option>
-                            <option value="1">✅ 已有图</option>
-                            <option value="0">❌ 缺图</option>
-                        </select>
-                        <select class="tag-picker-local-filter" id="tagPickerLocalSort" title="排序方式">
-                            <option value="popular">热门 (post_count)</option>
-                            <option value="recent">最近抓图</option>
-                            <option value="name">名字 A-Z</option>
-                            <option value="random">随机</option>
-                        </select>
-                        <button class="icon-button ghost" id="tagPickerLocalRefreshBtn" title="刷新">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3.5-7.1M21 4v5h-5"/></svg>
-                        </button>
                     </div>
                 </div>
                 <div class="tag-picker-body" id="tagPickerBody"></div>

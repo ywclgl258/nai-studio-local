@@ -183,9 +183,27 @@ function mergeAndRender() {
 
 const debouncedSearchLocal = debounce(searchLocal, 150);
 const debouncedSearchOnline = debounce(searchOnline, 350);
+const debouncedSearchLocalList = debounce(searchLocalList, 250);
+
+/**
+ * 本地缓存 tab 用的搜索：输入框打字 → 重新调 local_list
+ * 与现有 _state.localFilters.q 合并
+ */
+function searchLocalList() {
+    if (_state.activeTab !== 'local') return;
+    _state.localFilters.q = _state.query.trim();
+    loadLocalPage(true);
+}
 
 function onInput() {
     _state.query = _els.search.value;
+    if (_state.activeTab === 'local') {
+        // 本地缓存 tab：用搜索框当 q 筛本地
+        debouncedSearchLocalList();
+        // 关闭 online dropdown
+        _els.dropdown?.classList.add('hidden');
+        return;
+    }
     debouncedSearchLocal();
     debouncedSearchOnline();
     if (!_state.query) {
@@ -570,31 +588,74 @@ async function switchTab(tab) {
         b.classList.toggle('active', b.dataset.tab === tab);
     });
 
+    // sidebar 永远显示，内部 group 按 tab 切换
+    if (_els.sidebar) {
+        _els.sidebar.querySelectorAll('[data-sidebar-for]').forEach(g => {
+            g.classList.toggle('hidden', g.dataset.sidebarFor !== tab);
+        });
+    }
+
     if (tab === 'local') {
-        // 切到本地缓存：隐藏 sidebar + search wrap + translate bar + 显示 toolbar
-        _els.sidebar?.classList.add('hidden');
-        _els.searchWrap?.classList.add('hidden');
+        // 本地缓存 tab：搜索框仍然可用（搜本地 name/cn_name），隐藏中→英 translate bar
         _els.translateBar?.classList.add('hidden');
         _els.dropdown?.classList.add('hidden');
-        _els.localToolbar?.classList.remove('hidden');
+        _els.searchWrap?.classList.remove('hidden');
+        if (_els.search) _els.search.placeholder = '搜索本地缓存（name / cn_name）— 回车搜索';
         if (_els.centerTitle) _els.centerTitle.textContent = '本地缓存';
-        if (_els.localRefresh) _els.localRefresh.classList.remove('hidden');
         if (_state.localTagsAll.length === 0) {
             await loadLocalPage(true);
         } else {
             renderLocal();
         }
         refreshLocalCount();
+        refreshLocalCategoryCounts();
     } else {
-        // 切到搜索：恢复 sidebar + search wrap + 隐藏 toolbar
-        _els.sidebar?.classList.remove('hidden');
+        // 搜索 tab：恢复 translate bar + 搜索框 + 渲染搜索结果
+        _els.translateBar?.classList.remove('hidden');
         _els.searchWrap?.classList.remove('hidden');
-        _els.localToolbar?.classList.add('hidden');
+        if (_els.search) _els.search.placeholder = '输入中文 / 英文 tag — 中→英自动翻译 · 点击标签加入购物车';
         if (_els.centerTitle) _els.centerTitle.textContent = '在线搜索';
-        if (_els.localRefresh) _els.localRefresh.classList.add('hidden');
         renderTags();
         setTimeout(() => _els.search?.focus(), 50);
     }
+}
+
+/**
+ * 处理本地缓存 tab 的 sidebar 按钮点击
+ * data-local-cat: all / with-image / no-image / cat-N / sort-X
+ */
+function onLocalSidebarClick(btn) {
+    const localCat = btn.dataset.localCat;
+    if (!localCat) return;
+
+    // 视觉：同级按钮只激活当前
+    btn.closest('.tag-picker-sidebar-group').querySelectorAll('.tag-picker-cat-btn').forEach(b => {
+        b.classList.toggle('active', b === btn);
+    });
+
+    // 映射到 filter 参数
+    const filters = { ..._state.localFilters };
+    delete filters.q;  // q 由搜索框单独管
+
+    // 重置之前的所有筛选
+    filters.category = '';
+    filters.has_image = '';
+    filters.sort = 'popular';
+
+    if (localCat === 'all') {
+        // 全部本地
+    } else if (localCat === 'with-image') {
+        filters.has_image = '1';
+    } else if (localCat === 'no-image') {
+        filters.has_image = '0';
+    } else if (localCat.startsWith('cat-')) {
+        filters.category = localCat.slice(4);
+    } else if (localCat.startsWith('sort-')) {
+        filters.sort = localCat.slice(5);
+    }
+
+    _state.localFilters = filters;
+    loadLocalPage(true);
 }
 
 /**
@@ -633,6 +694,7 @@ async function loadLocalPage(reset = false) {
             _state.localTagsAll = _state.localTagsAll.concat(r.rows);
         }
         renderLocal();
+        refreshLocalCategoryCounts();
     } catch (e) {
         toast('本地缓存加载失败: ' + e.message, { type: 'error' });
         _els.body.innerHTML = `<div class="tag-picker-empty"><div class="empty-icon">❌</div><div>加载失败</div><div class="empty-hint">${escapeHtml(e.message)}</div></div>`;
@@ -681,6 +743,36 @@ async function refreshLocalCount() {
         _els.localCount.title = `${r.have}/${r.total} 有图（${r.coverage}%）`;
     } catch {}
 }
+
+/**
+ * 刷新本地缓存 sidebar 各分类计数
+ * 调多个 /api/tags.php?action=local_list&per_page=1 拿 total 即可
+ */
+async function refreshLocalCategoryCounts() {
+    const filters = [
+        { key: 'All',     category: '', has_image: '' },
+        { key: 'With',    category: '', has_image: '1' },
+        { key: 'Without', category: '', has_image: '0' },
+        { key: 'General', category: '29', has_image: '' },
+        { key: 'Artist',  category: '30', has_image: '' },
+        { key: 'Copy',    category: '31', has_image: '' },
+        { key: 'Char',    category: '32', has_image: '' },
+        { key: 'Meta',    category: '33', has_image: '' },
+    ];
+    const results = await Promise.allSettled(filters.map(f => api.tagLocalList({
+        page: 1, per_page: 1,
+        category: f.category, has_image: f.has_image,
+    })));
+    const map = { All: 'tagPickerLocalCatCountAll', With: 'tagPickerLocalCatCountWith',
+                  Without: 'tagPickerLocalCatCountWithout', General: 'tagPickerLocalCatCountGeneral',
+                  Artist: 'tagPickerLocalCatCountArtist', Copy: 'tagPickerLocalCatCountCopy',
+                  Char: 'tagPickerLocalCatCountChar', Meta: 'tagPickerLocalCatCountMeta' };
+    results.forEach((r, i) => {
+        const el = document.getElementById(map[filters[i].key]);
+        if (!el) return;
+        el.textContent = r.status === 'fulfilled' ? formatCount(r.value.total) : '?';
+    });
+}
 function onSearchKey(e) {
     if (e.key === 'Escape') {
         e.preventDefault();
@@ -720,6 +812,8 @@ export function initTagPicker() {
         localHasImage:  document.getElementById('tagPickerLocalHasImage'),
         localSort:      document.getElementById('tagPickerLocalSort'),
         localRefresh:   document.getElementById('tagPickerLocalRefreshBtn'),
+        sidebarSearchGroup: document.querySelector('[data-sidebar-for="search"]'),
+        sidebarLocalGroup:  document.querySelector('[data-sidebar-for="local"]'),
     };
     if (!_els.picker) return;
 
@@ -742,30 +836,22 @@ export function initTagPicker() {
 
     // sidebar 分类切换
     if (_els.sidebar) {
-        _els.sidebar.querySelectorAll('.tag-picker-cat-btn').forEach(btn => {
+        _els.sidebar.querySelectorAll('[data-sidebar-for="search"] .tag-picker-cat-btn').forEach(btn => {
             btn.addEventListener('click', onCatClick);
         });
+        _els.sidebar.querySelectorAll('[data-sidebar-for="local"] .tag-picker-cat-btn').forEach(btn => {
+            if (btn.id === 'tagPickerLocalRefreshBtn') return;
+            btn.addEventListener('click', () => onLocalSidebarClick(btn));
+        });
     }
+
+    // 刷新按钮
+    document.getElementById('tagPickerLocalRefreshBtn')?.addEventListener('click', () => loadLocalPage(true));
 
     // Tab 切换
     _els.picker.querySelectorAll('.tag-picker-tab').forEach(btn => {
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
-
-    // 本地缓存筛选条
-    const onFilterChange = () => {
-        _state.localFilters = {
-            category:  _els.localCategory?.value || '',
-            has_image: _els.localHasImage?.value || '',
-            sort:      _els.localSort?.value || 'popular',
-            q:         '',
-        };
-        loadLocalPage(true);
-    };
-    _els.localCategory?.addEventListener('change', onFilterChange);
-    _els.localHasImage?.addEventListener('change', onFilterChange);
-    _els.localSort?.addEventListener('change', onFilterChange);
-    _els.localRefresh?.addEventListener('click', () => loadLocalPage(true));
 
     // 滚动到底自动加载更多
     _els.body?.addEventListener('scroll', () => {
