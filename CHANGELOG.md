@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [1.1.4] - 2026-06-30
+P26-06-30
 
 > 🎯 **真正零依赖便携版 + 系统级 PHP server 死锁修复**
 > 解压即跑，**无需**安装 PHP / Apache / XAMPP。修了 4 个会让 server 永久死锁的 bug。
