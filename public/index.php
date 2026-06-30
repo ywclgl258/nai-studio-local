@@ -199,11 +199,11 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 </div>
                 <div class="prompt-editor" id="promptEditor">
                     <div class="prompt-highlight" id="promptHighlight" aria-hidden="true"></div>
-                    <textarea id="promptInput" class="prompt-input" rows="4" spellcheck="false" placeholder="1girl, masterpiece, best quality, ..."></textarea>
+                    <textarea id="promptInput" class="prompt-input" rows="4" spellcheck="false" data-mention-kind="prompt" placeholder="1girl, masterpiece, best quality, ...  ·  输 / 插入预设片段"></textarea>
                 </div>
                 <div class="prompt-editor hidden" id="negativeEditor">
                     <div class="prompt-highlight" id="negativeHighlight" aria-hidden="true"></div>
-                    <textarea id="negativeInput" class="prompt-input" rows="3" spellcheck="false" placeholder="lowres, bad anatomy, ..."></textarea>
+                    <textarea id="negativeInput" class="prompt-input" rows="3" spellcheck="false" data-mention-kind="negative" placeholder="lowres, bad anatomy, ...  · 输 / 插入负面预设"></textarea>
                 </div>
                 <div class="prompt-editor hidden" id="charactersEditor">
                     <p class="pose-hint-text">最终提示词 = 提示词 + 角色提示词 + 姿势提示词 · 最多 3 个角色</p>
@@ -235,7 +235,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 </div>
                 <div class="prompt-editor hidden" id="poseEditor">
                     <p class="pose-hint-text">默认追加到主提示词末尾 · 可保存为预设方便一键载入</p>
-                    <textarea id="poseInput" class="prompt-input pose-input" rows="3" spellcheck="false" placeholder="例：standing, hands at sides, looking at viewer, ..."></textarea>
+                    <textarea id="poseInput" class="prompt-input pose-input" rows="3" spellcheck="false" data-mention-kind="pose" placeholder="例：standing, hands at sides, ...  · 输 / 插入姿势预设"></textarea>
                     <div class="pose-action-row preset-row-kind-pose" data-kind="pose">
                         <span class="preset-kind-badge" data-kind="pose" title="姿势预设">🧍 姿势</span>
                         <button class="link-button" id="poseSavePresetBtn" title="把当前姿势提示词存为预设">
@@ -1691,6 +1691,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
             "./assets/js/characters.js": "./assets/js/characters.js?v=<?= filemtime(__DIR__ . '/assets/js/characters.js') ?>",
             "./assets/js/pose.js": "./assets/js/pose.js?v=<?= filemtime(__DIR__ . '/assets/js/pose.js') ?>",
             "./assets/js/preset-combobox.js": "./assets/js/preset-combobox.js?v=<?= filemtime(__DIR__ . '/assets/js/preset-combobox.js') ?>",
+            "./assets/js/mention-presets.js": "./assets/js/mention-presets.js?v=<?= filemtime(__DIR__ . '/assets/js/mention-presets.js') ?>",
             "./assets/js/vibe.js": "./assets/js/vibe.js?v=<?= filemtime(__DIR__ . '/assets/js/vibe.js') ?>",
             "./assets/js/precise.js": "./assets/js/precise.js?v=<?= filemtime(__DIR__ . '/assets/js/precise.js') ?>",
             "./assets/js/base-image.js": "./assets/js/base-image.js?v=<?= filemtime(__DIR__ . '/assets/js/base-image.js') ?>",

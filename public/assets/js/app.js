@@ -16,6 +16,7 @@ import { initAiSettings } from './ai-settings.js';
 import { initTagPicker } from './tag-picker.js';
 import { initCharacters } from './characters.js';
 import { initPose } from './pose.js';
+import { attachMention } from './mention-presets.js';
 import { initVibe } from './vibe.js';
 import { initPrecise } from './precise.js';
 import { initBaseImage } from './base-image.js';
@@ -166,6 +167,8 @@ async function boot() {
 
     // Init modules
     const safeInit = (name, fn) => { try { fn(); } catch (e) { console.error('[init]', name, 'failed:', e); } };
+    // Mention 必须最早 init（在 panel 之前），因为它装全局 listener
+    safeInit('Mention', () => attachMention(document.getElementById('promptInput'), 'prompt'));
     safeInit('Panel',       initPanel);
     safeInit('PromptEditor',initPromptEditor);
     safeInit('AiSettings',  initAiSettings);

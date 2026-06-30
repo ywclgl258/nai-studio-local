@@ -1,0 +1,14 @@
+fix(mention): regex literal / in char class breaks parser
+
+The regex `/(^|[^\w/])(/[A-Za-z0-9_]*)$/` was failing at runtime
+because the `/` inside the character class `[^\w/]` made the JS
+parser terminate the regex literal early:
+
+  Invalid regular expression: /(^|[^\w/])(/: Unterminated group
+
+Page was stuck loading because this error fired during initial
+mention module load. Fix: use `new RegExp()` constructor with
+string pattern (no parser ambiguity).
+
+Also: subscribe() was called with single fn arg, leaving fn=undefined
+and key=fn-string. Fixed to pass proper keys array.

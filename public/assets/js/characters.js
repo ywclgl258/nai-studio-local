@@ -146,8 +146,8 @@ function render() {
         row.className = 'character-prompt-row';
         row.innerHTML = `
             <div class="cp-index">${i + 1}</div>
-            <textarea data-idx="${i}" spellcheck="false"
-                placeholder="例：1girl, long pink hair, blue eyes, sailor uniform, ..."
+            <textarea data-idx="${i}" spellcheck="false" data-mention-kind="character"
+                placeholder="例：1girl, long pink hair, blue eyes, ...  ·  输 / 插入角色预设"
                 aria-label="角色 ${i + 1} 提示词"></textarea>
             <button class="cp-remove" data-action="remove" data-idx="${i}" title="删除这个角色" aria-label="删除角色 ${i + 1}">×</button>
         `;
