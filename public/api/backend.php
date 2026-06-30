@@ -1,9 +1,13 @@
 <?php
 /**
- * NAI Studio - 后端服务控制
- * GET ?action=status  → 返回 apache / mysql 运行状态
- * POST action=start  → 启动 Apache + MySQL
- * POST action=stop   → 停止 Apache + MySQL
+ * NAI Studio - 后端服务控制（PHP 内置服务器 + SQLite）
+ *
+ * GET  ?action=status  → 返回 server / db 状态
+ * POST action=start   → 启动 PHP 内置服务器（8080）
+ * POST action=stop    → 停止 PHP 内置服务器（杀 8080 端口）
+ *
+ * 之前这个文件假设用 XAMPP（Apache 80 + MySQL 3306），但 nai-studio 实际是
+ * PHP 内置 server 8080 + SQLite 单文件，不需要任何外部服务。
  */
 
 require_once __DIR__ . '/../../src/bootstrap.php';
@@ -14,115 +18,137 @@ header('Content-Type: application/json; charset=utf-8');
 header('X-Backend-Action: ' . ($_GET['action'] ?? $_POST['action'] ?? 'status'));
 
 $action = $_GET['action'] ?? $_POST['action'] ?? 'status';
-$logger = null; // Logger::init() is called automatically on first log()
 
-$xampp = 'C:\\xampp';
-$apacheExe = $xampp . '\\apache\\bin\\httpd.exe';
-$mysqlExe  = $xampp . '\\mysql\\bin\\mysqld.exe';
-$mysqlIni  = $xampp . '\\mysql\\bin\\my.ini';
+// 端口和路径配置
+$port     = 8080;  // NAI Studio 固定端口（要改就改这里 + router.php）
+$root     = realpath(__DIR__ . '/../..');
+$phpExe   = trim((string)shell_exec('where php 2>nul')) ?: 'php';
+$dbFile   = $root . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'nai-studio.db';
+$logFile  = $root . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'php-server.log';
+$pidFile  = sys_get_temp_dir() . '\\nai_studio_php_server.pid';
+$startVbs = sys_get_temp_dir() . '\\nai_start_php_server.vbs';
+$siteUrl  = 'http://127.0.0.1:' . $port . '/nai-studio/';
 
-function checkPort($port) {
-    // Win-compatible: use fsockopen
+function checkPort(int $port): bool {
     $conn = @fsockopen('127.0.0.1', $port, $errno, $errstr, 1);
     if ($conn) { fclose($conn); return true; }
     return false;
 }
 
-function checkProcess($name) {
-    // Use tasklist to see if process exists
-    $output = [];
-    exec('tasklist /FI "IMAGENAME eq ' . escapeshellarg($name) . '"', $output);
-    foreach ($output as $line) {
-        if (stripos($line, $name) !== false && stripos($line, 'No tasks') === false) {
-            return true;
-        }
+function killPort(int $port): array {
+    $log = [];
+    // netstat 输出格式：TCP    0.0.0.0:8080    0.0.0.0:0    LISTENING    1234
+    $out = shell_exec('netstat -aon 2>nul | findstr ":' . $port . ' " | findstr "LISTENING"');
+    if (!$out) { $log[] = "端口 {$port} 未被占用"; return $log; }
+    $pids = [];
+    foreach (explode("\n", $out) as $line) {
+        if (preg_match('/LISTENING\s+(\d+)/', $line, $m)) $pids[] = (int)$m[1];
     }
-    return false;
+    $pids = array_unique($pids);
+    foreach ($pids as $pid) {
+        if ($pid <= 0) continue;
+        $rc = 0;
+        exec("taskkill /F /PID $pid 2>&1", $dummy, $rc);
+        $log[] = "PID {$pid} " . ($rc === 0 ? '已停止' : '停止失败 (rc=' . $rc . ')');
+    }
+    return $log;
 }
 
-function getStatus() {
+function readPidFile(string $path): ?int {
+    if (!file_exists($path)) return null;
+    $pid = (int)trim((string)@file_get_contents($path));
+    return $pid > 0 ? $pid : null;
+}
+
+function isProcessAlive(int $pid): bool {
+    if ($pid <= 0) return false;
+    $out = shell_exec("tasklist /FI \"PID eq $pid\" 2>nul");
+    return $out && stripos($out, (string)$pid) !== false;
+}
+
+function getStatus(int $port, string $dbFile, string $pidFile, string $logFile): array {
+    $portUp   = checkPort($port);
+    $dbExists = file_exists($dbFile);
+    $dbSize   = $dbExists ? filesize($dbFile) : 0;
+    $pid      = readPidFile($pidFile);
+    $procUp   = $pid ? isProcessAlive($pid) : false;
     return [
-        'apache' => checkPort(80),
-        'mysql'  => checkPort(3306),
-        'httpd_process'  => checkProcess('httpd.exe'),
-        'mysqld_process' => checkProcess('mysqld.exe'),
-        'site_url' => 'http://localhost/nai-studio/',
-        'timestamp' => date('c'),
+        'port'        => $port,
+        'server'      => $portUp,                   // 主开关：端口可达 = 跑起来了
+        'pid'         => $pid,
+        'process'     => $procUp,                   // PID 文件记录的进程是否还在
+        'db_exists'   => $dbExists,
+        'db_size_kb'  => $dbSize ? (int)round($dbSize / 1024) : 0,
+        'db_ok'       => $dbExists && $dbSize > 0,  // DB 文件存在且非空
+        'site_url'    => $portUp ? ('http://127.0.0.1:' . $port . '/nai-studio/') : null,
+        'log_file'    => file_exists($logFile) ? $logFile : null,
+        'timestamp'   => date('c'),
     ];
 }
 
 if ($action === 'status') {
-    echo json_encode(['ok' => true] + getStatus());
+    echo json_encode(['ok' => true] + getStatus($port, $dbFile, $pidFile, $logFile), JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 if ($action === 'start') {
     $log = [];
-    $apacheOk = checkProcess('httpd.exe');
-    $mysqlOk  = checkProcess('mysqld.exe');
+    $st  = getStatus($port, $dbFile, $pidFile, $logFile);
 
-    if (!$mysqlOk && file_exists($mysqlExe)) {
-        // Start MySQL: use a .vbs wrapper to detach the process from PHP's lifetime
-        $vbs = sys_get_temp_dir() . '\\nai_start_mysql.vbs';
-        file_put_contents($vbs, "Set WshShell = CreateObject(\"WScript.Shell\")\r\nWshShell.Run \"\"\"$mysqlExe\"\" --defaults-file=\"\"$mysqlIni\"\" --standalone\", 0, False\r\n");
-        pclose(popen('cmd /c start /min "" wscript "' . $vbs . '"', 'r'));
-        $log[] = 'MySQL 启动请求已发送';
-    } else if ($mysqlOk) {
-        $log[] = 'MySQL 已在运行';
+    if ($st['server']) {
+        $log[] = "PHP 内置服务器已在运行（端口 {$port}）";
     } else {
-        $log[] = 'MySQL 可执行文件不存在: ' . $mysqlExe;
-    }
-
-    if (!$apacheOk && file_exists($apacheExe)) {
-        // Start Apache: use a .vbs wrapper for proper detachment
-        $vbs = sys_get_temp_dir() . '\\nai_start_apache.vbs';
-        file_put_contents($vbs, "Set WshShell = CreateObject(\"WScript.Shell\")\r\nWshShell.Run \"\"\"$apacheExe\"\"\", 0, False\r\n");
-        pclose(popen('cmd /c start /min "" wscript "' . $vbs . '"', 'r'));
-        $log[] = 'Apache 启动请求已发送';
-    } else if ($apacheOk) {
-        $log[] = 'Apache 已在运行';
-    } else {
-        $log[] = 'Apache 可执行文件不存在: ' . $apacheExe;
-    }
-
-    // Wait up to 10 seconds for ports to be ready
-    $ready = false;
-    for ($i = 0; $i < 10; $i++) {
-        sleep(1);
-        if (checkPort(80) && checkPort(3306)) {
-            $ready = true;
-            break;
+        if (!file_exists($dbFile)) {
+            $log[] = '⚠ SQLite 数据库不存在：' . $dbFile;
+            $log[] = '请先运行迁移：php tools/migrate_mysql_to_sqlite.php';
+            echo json_encode(['ok' => false, 'error' => 'db_missing', 'log' => $log] + $st, JSON_UNESCAPED_UNICODE);
+            exit;
         }
+
+        // 确保日志目录存在
+        $logDir = dirname($logFile);
+        if (!is_dir($logDir)) @mkdir($logDir, 0777, true);
+
+        // 用 wscript vbs 包裹启动（脱离 PHP 进程生命周期）
+        $vbsContent = "Set WshShell = CreateObject(\"WScript.Shell\")\r\n"
+            . "WshShell.Run \"\"\"$phpExe\"\" -S 127.0.0.1:$port -t \"\"" . str_replace('/', '\\', $root . '/public') . "\" \"\"" . str_replace('/', '\\', $root . '/public/index.php') . "\" > \"\"" . str_replace('/', '\\', $logFile) . "\" 2>&1\", 0, False\r\n";
+        file_put_contents($startVbs, $vbsContent);
+
+        pclose(popen('cmd /c start /min "" wscript "' . $startVbs . '"', 'r'));
+        $log[] = "PHP 内置服务器启动请求已发送（端口 {$port}）";
+        $log[] = "日志：" . $logFile;
+    }
+
+    // 等端口就绪（最多 8 秒）
+    $ready = false;
+    for ($i = 0; $i < 8; $i++) {
+        usleep(500_000);  // 500ms
+        if (checkPort($port)) { $ready = true; break; }
+    }
+    if ($ready) {
+        $log[] = "✓ 端口 {$port} 已就绪";
+        // 写 PID 文件
+        $out = shell_exec("netstat -aon 2>nul | findstr \":{$port} \" | findstr \"LISTENING\"");
+        if ($out && preg_match('/LISTENING\s+(\d+)/', $out, $m)) {
+            @file_put_contents($pidFile, $m[1]);
+            $log[] = "PHP server PID = " . $m[1];
+        }
+    } else {
+        $log[] = "⚠ 端口 {$port} 启动超时（8 秒），请查看日志";
     }
 
     Logger::info('backend.start', $log);
-    echo json_encode([
-        'ok' => true,
-        'log' => $log,
-        'ready' => $ready,
-    ] + getStatus());
+    echo json_encode(['ok' => true, 'ready' => $ready, 'log' => $log] + getStatus($port, $dbFile, $pidFile, $logFile), JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 if ($action === 'stop') {
-    $log = [];
-    if (checkProcess('httpd.exe')) {
-        exec('taskkill /IM httpd.exe /F 2>&1', $out, $rc);
-        $log[] = 'Apache 已停止 (rc=' . $rc . ')';
-    } else {
-        $log[] = 'Apache 未运行';
-    }
-    if (checkProcess('mysqld.exe')) {
-        exec('taskkill /IM mysqld.exe /F 2>&1', $out, $rc);
-        $log[] = 'MySQL 已停止 (rc=' . $rc . ')';
-    } else {
-        $log[] = 'MySQL 未运行';
-    }
-
+    $log = killPort($port);
+    @unlink($pidFile);
     Logger::info('backend.stop', $log);
-    echo json_encode(['ok' => true, 'log' => $log] + getStatus());
+    echo json_encode(['ok' => true, 'log' => $log] + getStatus($port, $dbFile, $pidFile, $logFile), JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 http_response_code(400);
-echo json_encode(['ok' => false, 'error' => 'unknown action: ' . $action]);
+echo json_encode(['ok' => false, 'error' => 'unknown action: ' . $action], JSON_UNESCAPED_UNICODE);

@@ -132,15 +132,25 @@
 .pose-quick:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
 
 .pose-action-row {
-    display: flex; gap: 12px;
+    display: flex; align-items: center; gap: 8px;
     margin-top: 6px;
     font-size: 12px;
+    flex-wrap: nowrap;
+}
+.pose-action-row .link-button,
+.pose-action-row .ghost-button,
+.pose-action-row .icon-button {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 .pose-action-row .link-button {
     display: inline-flex; align-items: center; gap: 4px;
     color: var(--accent);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 .pose-action-row .link-button:hover { color: var(--text); }
+.pose-action-row .preset-select { min-width: 0; flex: 1; }
 
 .pose-hint-text {
     font-size: 11px;

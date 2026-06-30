@@ -75,24 +75,29 @@ function setButtonState(btn, state) {
 }
 
 function renderStatus(s) {
-    if (!_els.statusApache || !s) return;
-    const okA = !!s.apache;
-    const okM = !!s.mysql;
-    _els.statusApache.classList.toggle('on', okA);
-    _els.statusApache.classList.toggle('off', !okA);
-    _els.statusApache.querySelector('.dot').classList.toggle('on', okA);
-    _els.statusApache.querySelector('.dot').classList.toggle('off', !okA);
-    _els.statusApache.querySelector('.label').textContent = okA ? 'Apache · 运行中' : 'Apache · 未启动';
+    if (!_els.statusServer || !s) return;
+    const okS = !!s.server;          // PHP server running
+    const okD = !!s.db_ok;           // SQLite db ok
+    _els.statusServer.classList.toggle('on', okS);
+    _els.statusServer.classList.toggle('off', !okS);
+    _els.statusServer.querySelector('.dot').classList.toggle('on', okS);
+    _els.statusServer.querySelector('.dot').classList.toggle('off', !okS);
+    const pid = s.pid ? ` (PID ${s.pid})` : '';
+    _els.statusServer.querySelector('.label').textContent = okS
+        ? `PHP 内置服务器 · 运行中${pid}`
+        : 'PHP 内置服务器 · 未启动';
 
-    _els.statusMysql.classList.toggle('on', okM);
-    _els.statusMysql.classList.toggle('off', !okM);
-    _els.statusMysql.querySelector('.dot').classList.toggle('on', okM);
-    _els.statusMysql.querySelector('.dot').classList.toggle('off', !okM);
-    _els.statusMysql.querySelector('.label').textContent = okM ? 'MySQL · 运行中' : 'MySQL · 未启动';
+    _els.statusDb.classList.toggle('on', okD);
+    _els.statusDb.classList.toggle('off', !okD);
+    _els.statusDb.querySelector('.dot').classList.toggle('on', okD);
+    _els.statusDb.querySelector('.dot').classList.toggle('off', !okD);
+    _els.statusDb.querySelector('.label').textContent = okD
+        ? `SQLite 数据库 · ${s.db_size_kb || 0} KB`
+        : 'SQLite 数据库 · 缺失';
 
     // Overall status
-    const allOn = okA && okM;
-    const allOff = !okA && !okM;
+    const allOn = okS && okD;
+    const allOff = !okS && !okD;
     if (_els.statusOverall) {
         _els.statusOverall.classList.toggle('all-on', allOn);
         _els.statusOverall.classList.toggle('all-off', allOff);
@@ -100,18 +105,18 @@ function renderStatus(s) {
         _els.statusOverall.querySelector('.label').textContent =
             allOn ? '● 后端服务运行中' :
             allOff ? '● 后端服务未启动' :
-            '● 部分服务运行中';
+            '● 部分就绪';
     }
 
     // Show/hide start/stop buttons
+    // - 服务跑着 → 隐藏启动按钮（按了也无效），显示停止
+    // - 服务没跑 → 启动按钮变为"打开 start.bat 提示"，隐藏停止
     if (_els.btnStart) {
-        _els.btnStart.style.display = allOn ? 'none' : '';
+        _els.btnStart.style.display = okS ? 'none' : '';
     }
     if (_els.btnStop) {
-        _els.btnStop.style.display = allOff ? 'none' : '';
+        _els.btnStop.style.display = okS ? '' : 'none';
     }
-
-    // Auto-stop polling when modal closes (handled by main caller)
 }
 
 async function refreshStatus() {
@@ -126,43 +131,25 @@ async function refreshStatus() {
 }
 
 async function backendStart() {
-    setButtonState(_els.btnStart, 'loading');
-    toast('启动后端服务…', { type: 'info' });
-    try {
-        const r = await api.backendStart();
-        renderStatus(r);
-        if (r.ready) {
-            toast('✓ 后端已就绪：Apache + MySQL', { type: 'success' });
-            setButtonState(_els.btnStart, 'success');
-            // Open site in new tab
-            setTimeout(() => {
-                window.open(r.site_url || '/', '_blank');
-            }, 400);
-        } else {
-            toast('启动请求已发出，等待服务就绪…', { type: 'warning' });
-            // Keep checking for up to 8 more seconds
-            let i = 0;
-            const iv = setInterval(async () => {
-                i++;
-                const s = await refreshStatus();
-                if (s?.apache && s?.mysql || i >= 8) clearInterval(iv);
-            }, 1000);
-        }
-    } catch (e) {
-        toast('启动失败: ' + e.message, { type: 'error' });
-        setButtonState(_els.btnStart, 'error');
+    // 启动必须从本地触发（服务要起才能连到这里），所以提示用户跑 start.bat
+    // 显示 bat 路径
+    const pathEl = document.getElementById('statusStartBatPath');
+    const batPath = pathEl?.textContent && pathEl.textContent !== '—' ? pathEl.textContent : 'tools\\start.bat';
+    toast('请运行 ' + batPath + ' 启动服务', { type: 'info', duration: 4000 });
+    // 复制路径到剪贴板方便用户去资源管理器粘
+    if (navigator.clipboard) {
+        try { await navigator.clipboard.writeText(batPath); toast('路径已复制到剪贴板', { type: 'success', duration: 2000 }); } catch (e) {}
     }
-    setTimeout(() => setButtonState(_els.btnStart, null), 2000);
 }
 
 async function backendStop() {
-    if (!confirm('确定要停止 Apache + MySQL 服务吗？\n\n停止后将无法访问网站和数据库。')) return;
+    if (!confirm('确定停止 NAI Studio 的 PHP 内置服务器吗？\n\n停止后网站将无法访问（直到重新启动）。')) return;
     setButtonState(_els.btnStop, 'loading');
-    toast('停止后端服务…', { type: 'info' });
+    toast('正在停止服务…', { type: 'info' });
     try {
         const r = await api.backendStop();
         renderStatus(r);
-        toast('✓ 后端已停止', { type: 'success' });
+        toast('✓ 服务已停止', { type: 'success' });
         setButtonState(_els.btnStop, 'success');
     } catch (e) {
         toast('停止失败: ' + e.message, { type: 'error' });
@@ -212,10 +199,20 @@ export function initActions() {
         btnStop:         document.getElementById('actionBackendStop'),
         btnRefresh:      document.getElementById('actionBackendRefresh'),
         btnCleanup:      document.getElementById('actionCleanup'),
-        statusApache:    document.getElementById('statusApache'),
-        statusMysql:     document.getElementById('statusMysql'),
+        statusServer:    document.getElementById('statusServer'),
+        statusDb:        document.getElementById('statusDb'),
         statusOverall:   document.getElementById('statusOverall'),
     };
+
+    // 渲染 start.bat 路径（绝对路径，方便用户去资源管理器找）
+    const pathEl = document.getElementById('statusStartBatPath');
+    if (pathEl) {
+        // 优先用 PHP 给的根目录（更准确），否则 fallback 到 nai-studio 相对路径
+        // 通过 fetch /api/backend.php 拿不到这个（API 没暴露），所以前端自己构造
+        pathEl.textContent = window.location.origin.replace(/\/+$/, '').includes('localhost') || window.location.port === '8080'
+            ? 'D:\\anima\\nai-studio\\tools\\start.bat'  // 开发环境
+            : 'tools\\start.bat';
+    }
 
     // Settings tab navigation (scoped to settings modal)
     document.querySelectorAll('#settingsModal .settings-tabs button').forEach(b => {

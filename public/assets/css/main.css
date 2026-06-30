@@ -429,9 +429,176 @@ code {
     display: flex; align-items: center; gap: 6px;
     padding: 4px 0;
 }
-.prompt-preset-row .preset-select { flex: 1; min-width: 0; }
+.prompt-preset-row .preset-select,
+.pose-action-row .preset-select,
+.preset-select {
+    flex: 1 1 100px;
+    min-width: 100px;
+    max-width: 100%;
+}
 .prompt-preset-icon { color: var(--text-muted); flex-shrink: 0; }
 .prompt-preset-row .ghost-button { padding: 4px 10px; font-size: 11px; }
+
+/* ===== 预设 combobox（姿势/角色/提示词通用）=====
+ * 替换浏览器原生 <select>，解决预设多了之后下拉框超出屏幕的问题
+ * 结构：
+ *   <div class="preset-combobox" data-kind="pose">
+ *     <button class="preset-cb-trigger">  ← 触发器
+ *       <span class="preset-cb-label">当前选中</span>
+ *       <svg class="preset-cb-arrow">▼</svg>
+ *     </button>
+ *     <div class="preset-cb-dropdown hidden">  ← 下拉面板
+ *       <input class="preset-cb-search" placeholder="搜索...">
+ *       <div class="preset-cb-list">...</div>
+ *     </div>
+ *   </div>
+ */
+.preset-combobox {
+    position: relative;
+    flex: 1; min-width: 0;
+}
+.preset-cb-trigger {
+    width: 100%;
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px;
+    background: var(--bg-2, rgba(0,0,0,0.25));
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm, 4px);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--t-fast, 0.15s) var(--ease);
+    min-height: 24px;
+}
+.preset-cb-trigger:hover { border-color: var(--accent); }
+.preset-cb-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15); }
+.preset-cb-label {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: var(--text-secondary);
+}
+.preset-cb-label.has-value { color: var(--text); font-weight: 500; }
+.preset-cb-label .fav-mark { color: #fbbf24; margin-right: 2px; }
+.preset-cb-arrow {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform var(--t-fast, 0.15s) var(--ease);
+}
+.preset-cb-trigger.open .preset-cb-arrow { transform: rotate(180deg); }
+
+.preset-cb-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    z-index: 1000;
+    background: var(--bg-1, #1a1a25);
+    border: 1px solid var(--border);
+    border-radius: var(--r, 6px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+    overflow: hidden;
+    min-width: 220px;
+}
+.preset-cb-search {
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+}
+.preset-cb-search:focus { background: rgba(0,0,0,0.4); }
+.preset-cb-search::placeholder { color: var(--text-muted); }
+
+.preset-cb-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+.preset-cb-group-label {
+    padding: 6px 10px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 4px;
+}
+.preset-cb-group-label:not(:first-child) {
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+}
+.preset-cb-group-label .group-count {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+.preset-cb-option {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background var(--t-fast, 0.15s) var(--ease);
+    user-select: none;
+}
+.preset-cb-option:hover,
+.preset-cb-option.highlight { background: rgba(168, 85, 247, 0.15); }
+.preset-cb-option.selected { background: rgba(168, 85, 247, 0.25); }
+.preset-cb-option .opt-fav { color: #fbbf24; font-size: 11px; flex-shrink: 0; }
+.preset-cb-option .opt-name {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.preset-cb-option .opt-prompt {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+.preset-cb-option .opt-actions {
+    flex-shrink: 0;
+    display: flex; gap: 2px;
+    opacity: 0;
+    transition: opacity var(--t-fast, 0.15s) var(--ease);
+}
+.preset-cb-option:hover .opt-actions { opacity: 1; }
+.preset-cb-option .opt-action {
+    width: 20px; height: 20px;
+    border: none; background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+}
+.preset-cb-option .opt-action:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.preset-cb-option .opt-action.danger:hover { color: #f87171; }
+.preset-cb-empty {
+    padding: 20px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.preset-cb-footer {
+    border-top: 1px solid var(--border);
+    padding: 4px;
+    background: rgba(0,0,0,0.2);
+}
+.preset-cb-footer button {
+    width: 100%;
+    padding: 6px 10px;
+    border: none; background: transparent;
+    color: var(--accent);
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left;
+    display: flex; align-items: center; gap: 4px;
+}
+.preset-cb-footer button:hover { background: rgba(168, 85, 247, 0.15); }
 
 /* 预设类别徽章（让三个 preset row 一眼能区分） */
 .preset-kind-badge {

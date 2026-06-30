@@ -47,12 +47,12 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=100">
     <link rel="icon" type="image/x-icon" href="favicon.ico?v=100">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=100">
-    <link rel="stylesheet" href="assets/css/main.css?v=104">
-    <link rel="stylesheet" href="assets/css/components.css?v=104">
-    <link rel="stylesheet" href="assets/css/tag-picker.css?v=104">
-    <link rel="stylesheet" href="assets/css/gallery.css?v=104">
-    <link rel="stylesheet" href="assets/css/mask-editor.css?v=104">
-    <link rel="stylesheet" href="assets/css/themes.css?v=104">
+    <link rel="stylesheet" href="assets/css/main.css?v=<?= filemtime(__DIR__ . '/assets/css/main.css') ?>">
+    <link rel="stylesheet" href="assets/css/components.css?v=<?= filemtime(__DIR__ . '/assets/css/components.css') ?>">
+    <link rel="stylesheet" href="assets/css/tag-picker.css?v=<?= filemtime(__DIR__ . '/assets/css/tag-picker.css') ?>">
+    <link rel="stylesheet" href="assets/css/gallery.css?v=<?= filemtime(__DIR__ . '/assets/css/gallery.css') ?>">
+    <link rel="stylesheet" href="assets/css/mask-editor.css?v=<?= filemtime(__DIR__ . '/assets/css/mask-editor.css') ?>">
+    <link rel="stylesheet" href="assets/css/themes.css?v=<?= filemtime(__DIR__ . '/assets/css/themes.css') ?>">
     <script>
         // Boot-time data for the SPA, no extra fetch needed
         window.__NAI_BOOT__ = {
@@ -223,10 +223,8 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                             <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
                             保存为预设
                         </button>
-                        <select class="preset-select" id="characterPresetSelect" title="选择角色预设载入">
-                            <option value="">— 角色预设 —</option>
-                        </select>
-                        <button class="icon-button small ghost" id="characterPresetManageBtn" title="管理预设（收藏/删除）">
+                        <div class="preset-select" id="characterPresetSelect" title="选择角色预设载入"></div>
+                        <button class="icon-button small ghost" id="characterPresetManageBtn" title="管理预设（收藏/删除/重命名）">
                             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
                         </button>
                     </div>
@@ -244,10 +242,8 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                             <svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 3h14v4H5V3zm0 6h14v12H5V9zm2 2v8h10v-8H7z" fill="currentColor"/></svg>
                             保存为预设
                         </button>
-                        <select class="preset-select" id="posePresetSelect" title="选择姿势预设载入">
-                            <option value="">— 姿势预设 —</option>
-                        </select>
-                        <button class="icon-button small ghost" id="posePresetManageBtn" title="管理预设（收藏/删除）">
+                        <div class="preset-select" id="posePresetSelect" title="选择姿势预设载入"></div>
+                        <button class="icon-button small ghost" id="posePresetManageBtn" title="管理预设（收藏/删除/重命名）">
                             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.8 6.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8.8 8.8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8.8 8.8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a6.8 6.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8.8 8.8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8.8 8.8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.6.1-1Z"/></svg>
                         </button>
                     </div>
@@ -1001,7 +997,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
             <div class="settings-pane hidden" data-pane="actions">
                 <h3 style="margin:0 0 8px;font-size:14px;color:var(--accent)">后端服务状态</h3>
                 <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
-                    控制本机 XAMPP（Apache + MySQL）服务的启停。停止后网站不可访问。
+                    NAI Studio 是 PHP 内置服务器 + SQLite 单文件，<b>无需 XAMPP / MySQL</b>。停止后网站不可访问。
                 </p>
 
                 <div class="status-panel" id="statusOverall">
@@ -1010,18 +1006,19 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 </div>
 
                 <div class="backend-status-row">
-                    <div class="backend-status-card" id="statusApache">
+                    <div class="backend-status-card" id="statusServer">
                         <span class="status-dot dot"></span>
-                        <span class="label">Apache</span>
+                        <span class="label">PHP 内置服务器 (8080)</span>
                     </div>
-                    <div class="backend-status-card" id="statusMysql">
+                    <div class="backend-status-card" id="statusDb">
                         <span class="status-dot dot"></span>
-                        <span class="label">MySQL</span>
+                        <span class="label">SQLite 数据库</span>
                     </div>
                 </div>
 
                 <div class="backend-actions">
-                    <button class="primary-button" id="actionBackendStart" style="flex:1;padding:14px">
+                    <button class="primary-button" id="actionBackendStart" style="flex:1;padding:14px"
+                            title="如服务未启动，请双击 tools\start.bat（或在此页查看路径）">
                         <svg viewBox="0 0 24 24" width="18" height="18" style="vertical-align:-3px;margin-right:6px"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
                         一键启动
                     </button>
@@ -1029,6 +1026,11 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                         <svg viewBox="0 0 24 24" width="18" height="18" style="vertical-align:-3px;margin-right:6px"><rect x="6" y="6" width="12" height="12" fill="currentColor"/></svg>
                         一键停止
                     </button>
+                </div>
+                <div style="margin-top:10px;padding:10px 12px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:6px;font-size:12px;color:var(--text-secondary);line-height:1.6">
+                    <b>💡 启动服务</b>：本页面无法直接启动服务（因为服务要起才能连到这里）。<br>
+                    请双击 <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">tools\start.bat</code> 启动；停止可点上方按钮或双击 <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">tools\stop.bat</code>。<br>
+                    <b>路径</b>：<code id="statusStartBatPath" style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">—</code>
                 </div>
                 <button class="ghost-button small" id="actionBackendRefresh" style="width:100%;margin-top:8px">
                     <svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:4px"><path d="M4 12a8 8 0 0 1 14-5.3L20 5v6h-6l2.4-2.4A6 6 0 0 0 6 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 12a8 8 0 0 1-14 5.3L4 19v-6h6l-2.4 2.4A6 6 0 0 0 18 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1686,6 +1688,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
             "./assets/js/ai-compose.js": "./assets/js/ai-compose.js?v=<?= filemtime(__DIR__ . '/assets/js/ai-compose.js') ?>",
             "./assets/js/characters.js": "./assets/js/characters.js?v=<?= filemtime(__DIR__ . '/assets/js/characters.js') ?>",
             "./assets/js/pose.js": "./assets/js/pose.js?v=<?= filemtime(__DIR__ . '/assets/js/pose.js') ?>",
+            "./assets/js/preset-combobox.js": "./assets/js/preset-combobox.js?v=<?= filemtime(__DIR__ . '/assets/js/preset-combobox.js') ?>",
             "./assets/js/vibe.js": "./assets/js/vibe.js?v=<?= filemtime(__DIR__ . '/assets/js/vibe.js') ?>",
             "./assets/js/precise.js": "./assets/js/precise.js?v=<?= filemtime(__DIR__ . '/assets/js/precise.js') ?>",
             "./assets/js/base-image.js": "./assets/js/base-image.js?v=<?= filemtime(__DIR__ . '/assets/js/base-image.js') ?>",

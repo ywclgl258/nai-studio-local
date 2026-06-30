@@ -13,11 +13,14 @@
 
 import { getState, setState } from './state.js';
 import { api } from './api.js';
+import { createPresetCombobox } from './preset-combobox.js';
+window.createPresetCombobox = createPresetCombobox;  // 暴露给非 ES module 调用（兼容 character 模块）
 import { toast } from './toast.js';
 import { saveLocal } from './storage.js';
 import { openPresetSave } from './preset-modal.js';
 
 let _els = {};
+let _combobox = null;
 
 function escapeHtml(s) {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -25,21 +28,34 @@ function escapeHtml(s) {
 
 function renderPresets() {
     const list = _els.presetList;
-    const select = _els.presetSelect;
     const presets = (getState().posePresets || []).slice();
     presets.sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0));
 
-    // 填充下拉
-    if (select) {
-        const current = select.value;
-        select.innerHTML = '<option value="">— 姿势预设 —</option>';
-        for (const p of presets) {
-            const opt = document.createElement('option');
-            opt.value = String(p.id);
-            opt.textContent = (p.is_favorite ? '★ ' : '') + p.name;
-            select.appendChild(opt);
-        }
-        if (current && presets.some(p => String(p.id) === current)) select.value = current;
+    // 自定义 combobox 替换原生 <select>
+    if (_combobox) {
+        _combobox.refresh();
+    } else if (_els.presetSelect && !_combobox) {
+        // 首次渲染：创建 combobox
+        _combobox = window.createPresetCombobox({
+            getItems: () => (getState().posePresets || []).slice().sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0)),
+            onSelect: (p) => loadPreset(p),
+            onOpenManage: () => togglePresetPanel(),
+            onToggleFav: async (p) => {
+                try {
+                    await api.updatePosePreset(p.id, { is_favorite: p.is_favorite ? 0 : 1 });
+                    await loadPresets();
+                } catch (err) { toast(err.message, { type: 'error' }); }
+            },
+            onDelete: async (p) => {
+                try {
+                    await api.deletePosePreset(p.id);
+                    await loadPresets();
+                    toast('已删除', { type: 'success' });
+                } catch (err) { toast(err.message, { type: 'error' }); }
+            },
+            placeholder: '— 姿势预设 —',
+        });
+        _els.presetSelect.appendChild(_combobox.el);
     }
 
     // 详细列表（管理弹窗用，目前默认隐藏）
@@ -156,14 +172,8 @@ export function initPose() {
     });
 
     _els.saveBtn?.addEventListener('click', saveCurrent);
-    _els.presetSelect?.addEventListener('change', (e) => {
-        const id = parseInt(e.target.value);
-        if (!id) return;
-        const p = (getState().posePresets || []).find(x => x.id === id);
-        if (p) loadPreset(p);
-        e.target.value = '';
-    });
+    // presetSelect 现在是容器，combobox 自己处理 onSelect
     _els.manageBtn?.addEventListener('click', togglePresetPanel);
 
-    loadPresets();
+    loadPresets();  // 首次加载后 renderPresets 会创建 combobox
 }
