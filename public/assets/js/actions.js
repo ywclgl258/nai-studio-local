@@ -134,7 +134,7 @@ async function backendStart() {
     // 启动必须从本地触发（服务要起才能连到这里），所以提示用户跑 start.bat
     // 显示 bat 路径
     const pathEl = document.getElementById('statusStartBatPath');
-    const batPath = pathEl?.textContent && pathEl.textContent !== '—' ? pathEl.textContent : 'tools\\start.bat';
+    const batPath = pathEl?.textContent && pathEl.textContent !== '—' ? pathEl.textContent : 'start.bat';
     toast('请运行 ' + batPath + ' 启动服务', { type: 'info', duration: 4000 });
     // 复制路径到剪贴板方便用户去资源管理器粘
     if (navigator.clipboard) {
@@ -210,8 +210,8 @@ export function initActions() {
         // 优先用 PHP 给的根目录（更准确），否则 fallback 到 nai-studio 相对路径
         // 通过 fetch /api/backend.php 拿不到这个（API 没暴露），所以前端自己构造
         pathEl.textContent = window.location.origin.replace(/\/+$/, '').includes('localhost') || window.location.port === '8080'
-            ? 'D:\\anima\\nai-studio\\tools\\start.bat'  // 开发环境
-            : 'tools\\start.bat';
+            ? 'D:\\anima\\nai-studio\\start.bat'        // 开发环境（绝对路径）
+            : 'start.bat';                              // 相对路径
     }
 
     // Settings tab navigation (scoped to settings modal)

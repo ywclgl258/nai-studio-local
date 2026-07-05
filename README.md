@@ -56,7 +56,7 @@ NAI 对 Paper / Tabletop 会员的**小图（≤832×1216）是不限量的**。
 > 项目自带精简 **PHP 8.2 runtime**（runtime\php\，**39 MB**），**完全无需装 PHP / 服务器**——解压就能跑。
 
 1. 解压项目到任意目录（**路径不要有中文**，避免 `php -S` 路径解析问题）
-2. 双击 `tools\start.bat`
+2. 双击根目录的 `start.bat`
 3. 浏览器自动打开 http://127.0.0.1:8080/nai-studio/
 4. 顶部输 NAI Token → 保存 → 出图
 
@@ -76,7 +76,7 @@ php -v
 
 ### 启动
 
-**Windows** — 双击 `tools\start.bat`，会自动：
+**Windows** — 双击根目录的 `start.bat`，会自动：
 1. 检查 PHP（runtime\ 或系统 PATH）+ SQLite DB
 2. 杀掉占用 8080 端口的旧进程
 3. 首次启动：把 `user-data\data-tpl\` 模板复制到 `user-data\`
@@ -89,7 +89,7 @@ php -v
 php -S 127.0.0.1:8080 -t public public/router.php
 ```
 
-**停止** — 双击 `tools\stop.bat`，或设置页 → 后端服务状态 → 一键停止。
+**停止** — 双击根目录的 `stop.bat`，或设置页 → 后端服务状态 → 一键停止。
 
 ### 配 API Key
 

@@ -150,7 +150,7 @@ if ($action === 'stop') {
         echo json_encode([
             'ok' => false,
             'error' => 'cannot_stop_self',
-            'message' => "不能在 8080 端口调用 stop（自杀风险）。请用 tools/stop.bat 或 taskkill /F /FI \"WINDOWTITLE eq *nai-studio*\"" . '。',
+            'message' => "不能在 8080 端口调用 stop（自杀风险）。请用根目录的 stop.bat 或 taskkill /F /FI \"WINDOWTITLE eq *nai-studio*\"" . '。',
             'log' => ['拒绝执行：调用来自 PHP server 自己所在的端口'],
         ], JSON_UNESCAPED_UNICODE);
         exit;

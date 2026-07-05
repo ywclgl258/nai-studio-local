@@ -1004,7 +1004,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 
                 <div class="backend-actions">
                     <button class="primary-button" id="actionBackendStart" style="flex:1;padding:14px"
-                            title="如服务未启动，请双击 tools\start.bat（或在此页查看路径）">
+                            title="如服务未启动，请双击根目录的 start.bat（或在此页查看路径）">
                         <svg viewBox="0 0 24 24" width="18" height="18" style="vertical-align:-3px;margin-right:6px"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
                         一键启动
                     </button>
@@ -1015,7 +1015,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
                 </div>
                 <div style="margin-top:10px;padding:10px 12px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:6px;font-size:12px;color:var(--text-secondary);line-height:1.6">
                     <b>💡 启动服务</b>：本页面无法直接启动服务（因为服务要起才能连到这里）。<br>
-                    请双击 <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">tools\start.bat</code> 启动；停止可点上方按钮或双击 <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">tools\stop.bat</code>。<br>
+                    请双击根目录的 <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">start.bat</code> 启动；停止可点上方按钮或双击根目录的 <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">stop.bat</code>。<br>
                     <b>路径</b>：<code id="statusStartBatPath" style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px">—</code>
                 </div>
                 <button class="ghost-button small" id="actionBackendRefresh" style="width:100%;margin-top:8px">

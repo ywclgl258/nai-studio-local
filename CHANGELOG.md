@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-06-29
+
+### 🏗️ Project Layout
+- **一键启动搬到根目录** — 之前 `start.bat` / `stop.bat` 在 `tools/` 子目录，新人/查找不容易
+  - `tools/start.bat` (5 步启动 + CRLF + vbs 包裹) → 根目录 `start.bat`
+  - `tools/stop.bat` (taskkill 8080) → 根目录 `stop.bat`
+- **保留 XAMPP 老版本** — 老的 XAMPP 启 Apache+MySQL 脚本保留为 `start-xampp.bat` / `stop-xampp.bat`（有人还在用 Apache 模式就继续用）
+- **统一引用更新** — `README.md` / `UPDATE_NOTES.md` / `public/index.php` (设置页提示) / `actions.js` (路径显示) / `backend.php` (错误消息) 全部改成根目录的 `start.bat` / `stop.bat`
+- **删除** `tools/_commit_msg.txt`（之前 gitignore 漏掉的临时文件）
+- **CHANGELOG 历史段**保持旧路径（是历史事实）
+
 P26-06-30
 
 > 🎯 **真正零依赖便携版 + 系统级 PHP server 死锁修复**
