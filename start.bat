@@ -20,7 +20,8 @@ REM ============================================================================
 chcp 65001 > nul
 setlocal EnableExtensions EnableDelayedExpansion
 title NAI Studio - Launcher
-cd /d "%~dp0\.."
+REM 移到 bat 所在目录（现在 bat 就在项目根，所以不用 ..）
+cd /d "%~dp0"
 
 set PORT=8080
 set URL=http://127.0.0.1:%PORT%/nai-studio/

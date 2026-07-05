@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-06-29
+
+### 🐛 Critical Bug Fix
+- **根目录 start.bat 双击不会启动** — 上一版搬到根目录后没改一行 `cd /d "%~dp0\.."` （bat 假设自己在 tools/ 子目录）
+  - **现象**：双击后窗口一闪而出（或者跑了但找不到 runtime/php/php.exe）
+  - **根因**：`%~dp0` = bat 所在目录（现在是 `D:\anima\nai-studio\`），`%..` 跳到**父目录** `D:\anima`，所以 `ROOT=%CD%` = `D:\anima`，runtime/user-data 都找不到
+  - **修法**：把 `cd /d "%~dp0\.."` 改成 `cd /d "%~dp0"`（不再 ..）
+  - **验证**：`cmd /c "start.bat"` 现在能起 PHP server 8080（PID=29680）
+
 ## [1.0.8] - 2026-06-29
 
 ### 🏗️ Project Layout
