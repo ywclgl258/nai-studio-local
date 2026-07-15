@@ -1,0 +1,30 @@
+<div class="modal-backdrop hidden" id="presetSaveModal">
+    <section class="settings-modal preset-modal" role="dialog" aria-modal="true" style="max-width:480px">
+        <button class="modal-close" id="closePresetSaveBtn" title="关闭">×</button>
+        <h2 id="presetSaveTitle">保存预设</h2>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px" id="presetSaveHint"></p>
+        <div style="display:flex;flex-direction:column;gap:12px">
+            <label>名称
+                <input id="presetSaveName" type="text" placeholder="给这个预设起个名字" maxlength="60">
+            </label>
+            <label id="presetSaveCategoryWrap" style="display:none">分类
+                <select id="presetSaveCategory">
+                    <option value="custom">自定义</option>
+                    <option value="standing">站姿</option>
+                    <option value="sitting">坐姿</option>
+                    <option value="lying">躺姿</option>
+                    <option value="action">动作</option>
+                    <option value="expression">表情</option>
+                </select>
+            </label>
+            <label class="toggle-row">
+                <span>加入收藏</span>
+                <input type="checkbox" id="presetSaveFavorite">
+            </label>
+        </div>
+        <div class="modal-footer">
+            <button class="ghost-button" id="cancelPresetSaveBtn">取消</button>
+            <button class="primary-button" id="confirmPresetSaveBtn">保存</button>
+        </div>
+    </section>
+</div>

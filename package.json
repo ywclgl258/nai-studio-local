@@ -1,0 +1,15 @@
+{
+  "name": "nai-studio-desktop",
+  "version": "2.0.0",
+  "description": "NAI Studio Desktop (Tauri + Rust) — Windows .exe, 8MB single file",
+  "private": true,
+  "scripts": {
+    "check-db": "node check_db.js",
+    "tauri:dev": "cargo tauri dev",
+    "tauri:build": "cargo tauri build --no-bundle",
+    "tauri:installer": "cargo tauri build"
+  },
+  "devDependencies": {
+    "better-sqlite3": "^12.11.1"
+  }
+}
