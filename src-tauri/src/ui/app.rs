@@ -1,17 +1,16 @@
-//! NaiApp — egui 主 App (重构: Linear 风全屏架构)
+//! NaiApp — 仿 PHP v2 三栏布局
 //!
-//! 布局:
-//!   ┌─ TopBar 32px (极薄, brand + 状态 + 搜索) ─────┐
-//!   ├─ CentralPanel (全屏, 当前 view 内容)         ─┤
-//!   ├─ StatusBar 24px (极薄, 当前视图)             ─┤
-//!   └─ Ctrl+K 命令面板 (悬浮 modal)                  ┘
+//! 完全照搬 NAI Studio PHP v0.8 的 .app-shell[data-shell="v2"] 布局:
 //!
-//! 关键改动 (vs Phase A.5):
-//!   - 删 SideBar (220px 浪费)
-//!   - TopBar 56 → 32 (chrome 减半)
-//!   - StatusBar 28 → 24
-//!   - 主视图用 mini tab 切换 (顶栏内嵌)
-//!   - 高级功能进 Ctrl+K 命令面板
+//!   ┌─ TopBar 56px ──────────────────────────────────────┐
+//!   │  ◈ NAI Studio  标签  ⌕ 搜索...    ● 已连接 v2.0  │
+//!   ├─ Left 280px ──┬─ Central 1fr ──────────┬─ Right 280px ─┤
+//!   │ 角色 / 姿势    │  视图内容              │  历史画廊     │
+//!   │ 负面 / 预设    │  (生图 / 画廊 / 标签  │  (2 列 2:3  │
+//!   │  / 模型参数   │   / 设置)              │   缩略图)     │
+//!   │              │                        │              │
+//!   ├─ StatusBar 24px ─────────────────────────────────────┤
+//!   └──────────────────────────────────────────────────┘
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -19,7 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use eframe::egui;
 
 use crate::state::AppState;
-use super::command::{CommandPalette};
+use super::command::CommandPalette;
 use super::http_client::HttpClient;
 use super::{icons, theme};
 
@@ -107,10 +106,8 @@ impl NaiApp {
         });
     }
 
-    /// 处理全局快捷键
     fn handle_global_shortcuts(&mut self, ctx: &egui::Context) {
         ctx.input(|i| {
-            // Ctrl+K / Cmd+K 弹命令面板
             if i.key_pressed(egui::Key::K)
                 && (i.modifiers.ctrl || i.modifiers.command)
                 && !self.command.open
@@ -119,13 +116,6 @@ impl NaiApp {
                 self.command.just_opened = true;
                 self.command.query.clear();
                 self.command.selected = 0;
-            }
-            // 顶栏 tab 切换 (1-4 数字键)
-            if !self.command.open {
-                if i.key_pressed(egui::Key::Num1) { self.current_view = View::Generate; }
-                if i.key_pressed(egui::Key::Num2) { self.current_view = View::Gallery; }
-                if i.key_pressed(egui::Key::Num3) { self.current_view = View::Tags; }
-                if i.key_pressed(egui::Key::Num4) { self.current_view = View::Settings; }
             }
         });
     }
@@ -143,108 +133,164 @@ impl eframe::App for NaiApp {
         self.maybe_ping(ctx);
         self.handle_global_shortcuts(ctx);
 
-        // === TopBar 32px (极薄) ===
-        egui::TopBottomPanel::top("top_bar")
-            .exact_height(32.0)
+        // ============================================================
+        // TopBar 56px (仿 PHP --ns-topbar-h)
+        // ============================================================
+        egui::TopBottomPanel::top("topbar")
+            .exact_height(theme::tokens::TOPBAR_H)
             .frame(egui::Frame::none()
-                .fill(theme::tokens::BG_PANEL)
-                .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE)))
+                .fill(theme::tokens::BG_SOFT)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE)))
             .show(ctx, |ui| {
+                ui.add_space(theme::tokens::NS_1);
                 ui.horizontal(|ui| {
-                    ui.add_space(theme::tokens::SPACING_MD);
+                    ui.add_space(theme::tokens::NS_4);
 
-                    // Logo + 品牌 (极简)
+                    // Logo + 品牌
                     ui.label(egui::RichText::new(icons::ICON_LOGO)
-                        .size(16.0).color(theme::tokens::ACCENT));
-                    ui.add_space(6.0);
+                        .size(18.0).color(theme::tokens::ACCENT));
+                    ui.add_space(theme::tokens::NS_2);
                     ui.label(egui::RichText::new("NAI Studio")
-                        .size(12.0).strong().color(theme::tokens::TEXT_PRIMARY));
+                        .size(14.0).strong().color(theme::tokens::TEXT));
 
-                    ui.add_space(theme::tokens::SPACING_LG);
+                    ui.add_space(theme::tokens::NS_4);
 
-                    // Mini tabs (4 视图切换)
+                    // 主导航 (4 tab, 仿 v2 .history-tabs)
                     for v in View::all() {
                         let selected = self.current_view == v;
-                        let text_color = if selected { theme::tokens::TEXT_PRIMARY } else { theme::tokens::TEXT_MUTED };
-                        let btn = egui::Button::new(
-                            egui::RichText::new(format!("{} {}", v.icon(), v.label()))
-                                .size(11.0).color(text_color)
-                        )
-                        .min_size(egui::vec2(64.0, 24.0))
-                        .fill(if selected { theme::tokens::BG_CARD } else { egui::Color32::TRANSPARENT })
-                        .stroke(if selected {
-                            egui::Stroke::new(1.0, theme::tokens::BORDER_NORMAL)
+                        let text_color = if selected { theme::tokens::TEXT } else { theme::tokens::TEXT_2 };
+                        let bg = if selected { theme::tokens::accent_soft() } else { egui::Color32::TRANSPARENT };
+                        let stroke = if selected {
+                            egui::Stroke::new(1.0, theme::tokens::LINE_ACCENT)
                         } else {
                             egui::Stroke::NONE
-                        });
+                        };
+
+                        let btn = egui::Button::new(
+                            egui::RichText::new(format!("{} {}", v.icon(), v.label()))
+                                .size(12.0).color(text_color)
+                        )
+                        .min_size(egui::vec2(64.0, 32.0))
+                        .fill(bg)
+                        .stroke(stroke);
                         if ui.add(btn).clicked() {
                             self.current_view = v;
                         }
                     }
 
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.add_space(theme::tokens::SPACING_MD);
+                    ui.add_space(theme::tokens::NS_2);
 
-                        // 后端状态 (极小)
+                    // 主生图按钮 (高亮, 仿 FAB)
+                    if self.current_view == View::Generate {
+                        let gen_btn = egui::Button::new(
+                            egui::RichText::new("✦ 生成")
+                                .size(12.0).strong()
+                                .color(theme::tokens::TEXT_ON_ACCENT)
+                        )
+                        .min_size(egui::vec2(72.0, 32.0))
+                        .fill(theme::tokens::ACCENT);
+                        ui.add(gen_btn);
+                    }
+
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add_space(theme::tokens::NS_4);
+
+                        // 后端状态
                         let (color, text, icon) = if self.last_ping_ok {
                             (theme::tokens::SUCCESS, "已连接", icons::ICON_CONNECTED)
                         } else {
-                            (theme::tokens::ERROR, "未连接", icons::ICON_DISCONNECTED)
+                            (theme::tokens::DANGER, "未连接", icons::ICON_DISCONNECTED)
                         };
                         ui.label(egui::RichText::new(icon).size(10.0).color(color));
-                        ui.label(egui::RichText::new(text).size(10.0).color(color));
-                        ui.add_space(theme::tokens::SPACING_MD);
+                        ui.add_space(2.0);
+                        ui.label(theme::micro(text).color(color));
+                        ui.add_space(theme::tokens::NS_4);
 
-                        // Ctrl+K 搜索按钮
+                        // 搜索按钮 (Ctrl+K)
                         let search_btn = egui::Button::new(
-                            egui::RichText::new("⌕ 搜索...   Ctrl+K")
-                                .size(11.0).color(theme::tokens::TEXT_MUTED)
+                            egui::RichText::new("⌕  搜索  Ctrl+K")
+                                .size(11.0).color(theme::tokens::TEXT_3)
                         )
-                        .min_size(egui::vec2(120.0, 22.0))
-                        .fill(theme::tokens::BG_BASE)
-                        .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE));
+                        .min_size(egui::vec2(120.0, 28.0))
+                        .fill(theme::tokens::BG_ELEVATED)
+                        .stroke(egui::Stroke::new(1.0, theme::tokens::LINE));
                         if ui.add(search_btn).clicked() {
                             self.command.open = true;
                             self.command.just_opened = true;
                         }
+
+                        ui.add_space(theme::tokens::NS_2);
+                        ui.label(theme::micro("v2.0"));
                     });
                 });
             });
 
-        // === StatusBar 24px (极薄) ===
-        egui::TopBottomPanel::bottom("status_bar")
-            .exact_height(24.0)
+        // ============================================================
+        // StatusBar 24px (仿 PHP 状态条)
+        // ============================================================
+        egui::TopBottomPanel::bottom("statusbar")
+            .exact_height(theme::tokens::STATUS_H)
             .frame(egui::Frame::none()
-                .fill(theme::tokens::BG_PANEL)
-                .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE)))
+                .fill(theme::tokens::BG_SOFT)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE)))
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.add_space(theme::tokens::SPACING_MD);
-                    ui.label(egui::RichText::new(format!("{} {}",
+                    ui.add_space(theme::tokens::NS_4);
+                    ui.label(theme::micro(&format!("{} {}",
                         self.current_view.icon(), self.current_view.label()))
-                        .size(10.0).color(theme::tokens::TEXT_SECONDARY));
+                        .color(theme::tokens::TEXT_2));
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.add_space(theme::tokens::SPACING_MD);
+                        ui.add_space(theme::tokens::NS_4);
                         if let Some(res) = &self.last_status {
                             match res {
-                                Ok(msg) => ui.label(egui::RichText::new(format!("✓ {}", msg))
-                                    .size(10.0).color(theme::tokens::SUCCESS)),
-                                Err(e) => ui.label(egui::RichText::new(format!("✗ {}", e))
-                                    .size(10.0).color(theme::tokens::ERROR)),
+                                Ok(msg) => ui.label(theme::micro(&format!("✓ {}", msg))
+                                    .color(theme::tokens::SUCCESS)),
+                                Err(e) => ui.label(theme::micro(&format!("✗ {}", e))
+                                    .color(theme::tokens::DANGER)),
                             };
                         } else {
-                            ui.label(egui::RichText::new("就绪")
-                                .size(10.0).color(theme::tokens::TEXT_MUTED));
+                            ui.label(theme::micro("就绪").color(theme::tokens::TEXT_3));
                         }
                     });
                 });
             });
 
-        // === CentralPanel: 全屏主内容 ===
+        // ============================================================
+        // 左侧栏 280px (仿 PHP --ns-sidebar-w, .left-panel)
+        // 内容: 4 tab (主提示词 / 角色 / 姿势 / 负面) + 模型参数 + 预设
+        // ============================================================
+        egui::SidePanel::left("leftpanel")
+            .resizable(false)
+            .exact_width(theme::tokens::LEFT_W)
+            .frame(egui::Frame::none()
+                .fill(theme::tokens::BG_SOFT)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE)))
+            .show(ctx, |ui| {
+                super::views::left_panel::show(ui, &self.http);
+            });
+
+        // ============================================================
+        // 右侧栏 280px (仿 PHP --ns-history-w, .gallery-history-strip)
+        // 内容: 历史画廊 (2 列 2:3 缩略图, hover 显示 seed/model meta)
+        // ============================================================
+        egui::SidePanel::right("history")
+            .resizable(false)
+            .exact_width(theme::tokens::RIGHT_W)
+            .frame(egui::Frame::none()
+                .fill(theme::tokens::BG_SOFT)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE)))
+            .show(ctx, |ui| {
+                super::views::history_strip::show(ui, &self.http);
+            });
+
+        // ============================================================
+        // 中央 1fr (仿 PHP .form-area / .gallery-area)
+        // 内容: 当前 view (生图 / 画廊 / 标签 / 设置)
+        // ============================================================
         egui::CentralPanel::default()
             .frame(egui::Frame::none()
-                .fill(theme::tokens::BG_BASE)
-                .inner_margin(egui::Margin::same(theme::tokens::SPACING_LG)))
+                .fill(theme::tokens::BG)
+                .inner_margin(egui::Margin::same(theme::tokens::NS_4)))
             .show(ctx, |ui| {
                 match self.current_view {
                     View::Generate => super::views::home::show(ui, &self.http),
@@ -254,16 +300,12 @@ impl eframe::App for NaiApp {
                 }
             });
 
-        // === Ctrl+K 命令面板 (悬浮 modal, 在最上层) ===
+        // Ctrl+K 命令面板
         self.command.show(ctx);
-
-        // 命令面板执行 action (在 NaiApp 上)
         if let Some(kind) = self.command.take_action() {
             use super::command::CommandKind;
             match kind {
-                CommandKind::SwitchView(v) => {
-                    self.current_view = v;
-                }
+                CommandKind::SwitchView(v) => { self.current_view = v; }
                 CommandKind::Placeholder(name) => {
                     self.last_status = Some(Err(format!("'{}' 还在 Phase B/C/D 规划中", name)));
                 }

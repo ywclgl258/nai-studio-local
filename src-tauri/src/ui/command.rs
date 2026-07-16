@@ -106,8 +106,8 @@ impl CommandPalette {
             .collapsible(false)
             .title_bar(false)
             .frame(egui::Frame::none()
-                .fill(theme::tokens::BG_PANEL)
-                .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_STRONG))
+                .fill(theme::tokens::BG_SOFT)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE_STRONG))
                 .rounding(0.0)
                 .inner_margin(egui::Margin::same(0.0)))
             .open(&mut open)
@@ -131,15 +131,15 @@ impl CommandPalette {
     fn render_inner(&mut self, ui: &mut egui::Ui) -> Option<CommandKind> {
         // 搜索框
         let search_frame = egui::Frame::none()
-            .fill(theme::tokens::BG_BASE)
-            .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE))
-            .inner_margin(egui::Margin::symmetric(theme::tokens::SPACING_LG, theme::tokens::SPACING_MD));
+            .fill(theme::tokens::BG)
+            .stroke(egui::Stroke::new(1.0, theme::tokens::LINE))
+            .inner_margin(egui::Margin::symmetric(theme::tokens::NS_4, theme::tokens::NS_3));
 
         let _response = search_frame.show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new("⌕")
-                    .size(18.0).color(theme::tokens::TEXT_MUTED));
-                ui.add_space(theme::tokens::SPACING_SM);
+                    .size(18.0).color(theme::tokens::TEXT_3));
+                ui.add_space(theme::tokens::NS_2);
                 let prev = self.query.clone();
                 let resp = egui::TextEdit::singleline(&mut self.query)
                     .hint_text("搜索命令、视图、功能...")
@@ -153,7 +153,7 @@ impl CommandPalette {
                 }
                 // 快捷键提示
                 ui.label(egui::RichText::new("ESC")
-                    .size(10.0).color(theme::tokens::TEXT_MUTED));
+                    .size(10.0).color(theme::tokens::TEXT_3));
             });
         });
 
@@ -169,7 +169,7 @@ impl CommandPalette {
         let filtered = self.filtered();
         if filtered.is_empty() {
             ui.vertical_centered(|ui| {
-                ui.add_space(theme::tokens::SPACING_2XL);
+                ui.add_space(theme::tokens::NS_6);
                 ui.label(theme::small("没有匹配的命令"));
             });
             return None;
@@ -202,21 +202,21 @@ impl CommandPalette {
                     ui.style_mut().spacing.item_spacing = egui::vec2(0.0, 2.0);
                     for (i, cmd) in filtered.iter() {
                         let selected = *i == self.selected;
-                        let bg = if selected { theme::tokens::ACCENT_SUBTLE } else { egui::Color32::TRANSPARENT };
+                        let bg = if selected { theme::tokens::accent_soft() } else { egui::Color32::TRANSPARENT };
                         let frame = egui::Frame::none()
                             .fill(bg)
-                            .inner_margin(egui::Margin::symmetric(theme::tokens::SPACING_LG, theme::tokens::SPACING_SM));
+                            .inner_margin(egui::Margin::symmetric(theme::tokens::NS_4, theme::tokens::NS_2));
                         let response = frame.show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 ui.label(egui::RichText::new(cmd.icon.clone())
                                     .size(16.0).color(
-                                        if selected { theme::tokens::ACCENT } else { theme::tokens::TEXT_SECONDARY }
+                                        if selected { theme::tokens::ACCENT } else { theme::tokens::TEXT_2 }
                                     ));
-                                ui.add_space(theme::tokens::SPACING_SM);
+                                ui.add_space(theme::tokens::NS_2);
                                 ui.vertical(|ui| {
                                     ui.label(egui::RichText::new(cmd.label.clone())
                                         .size(13.0)
-                                        .color(theme::tokens::TEXT_PRIMARY));
+                                        .color(theme::tokens::TEXT));
                                     if !cmd.hint.is_empty() {
                                         ui.label(theme::small(&cmd.hint));
                                     }
@@ -224,7 +224,7 @@ impl CommandPalette {
                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                     if let Some(sc) = &cmd.shortcut {
                                         ui.label(egui::RichText::new(sc.clone())
-                                            .size(11.0).color(theme::tokens::TEXT_MUTED));
+                                            .size(11.0).color(theme::tokens::TEXT_3));
                                     }
                                 });
                             });

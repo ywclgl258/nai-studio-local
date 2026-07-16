@@ -1,4 +1,4 @@
-//! 设置 — 全屏列表 (双栏卡片化)
+//! 中央: 设置 (双栏卡片化)
 
 use eframe::egui;
 
@@ -7,133 +7,121 @@ use super::super::theme;
 use super::super::icons;
 
 pub fn show(ui: &mut egui::Ui, _http: &HttpClient) {
-    // 顶部标题
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new(icons::ICON_SETTINGS)
-            .size(18.0).color(theme::tokens::ACCENT));
-        ui.add_space(8.0);
-        ui.label(egui::RichText::new("设置")
-            .size(18.0).strong().color(theme::tokens::TEXT_PRIMARY));
+            .size(16.0).color(theme::tokens::ACCENT));
+        ui.add_space(theme::tokens::NS_2);
+        ui.label(theme::h2("设置"));
     });
 
-    ui.add_space(theme::tokens::SPACING_MD);
-    ui.separator();
-    ui.add_space(theme::tokens::SPACING_LG);
+    ui.add_space(theme::tokens::NS_3);
 
-    // 主区: 两栏卡片
     ui.columns(2, |cols| {
-        // 左栏: NAI / AI / 代理
+        // 左栏
         cols[0].vertical(|ui| {
-            // NAI API Key
-            theme::card(ui, "NAI API Key", |ui| {
+            theme::card_with_title(ui, "NAI API Key", |ui| {
                 ui.horizontal(|ui| {
                     ui.colored_label(theme::tokens::SUCCESS, "●");
-                    ui.add_space(4.0);
-                    ui.label(theme::label("已配置 1 个 key"));
+                    ui.add_space(theme::tokens::NS_1);
+                    ui.label(theme::body("已配置 1 个 key"));
                 });
-                ui.add_space(4.0);
-                ui.label(theme::small("主号 · ••••a8b2 · 已启用"));
-                ui.add_space(theme::tokens::SPACING_SM);
+                ui.add_space(theme::tokens::NS_1);
+                ui.label(theme::micro("主号 · ••••a8b2 · 已启用"));
+                ui.add_space(theme::tokens::NS_2);
                 let btn = egui::Button::new(
                     egui::RichText::new("管理多 Key")
-                        .size(11.0).color(theme::tokens::TEXT_PRIMARY)
+                        .size(11.0).color(theme::tokens::TEXT_2)
                 )
-                .fill(theme::tokens::BG_RAISED)
-                .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE));
+                .fill(theme::tokens::BG_ELEVATED)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE));
                 ui.add(btn);
             });
 
-            ui.add_space(theme::tokens::SPACING_MD);
+            ui.add_space(theme::tokens::NS_3);
 
-            theme::card(ui, "AI 助手 (DeepSeek / OpenAI / Ollama)", |ui| {
-                ui.colored_label(theme::tokens::TEXT_MUTED, "○ 未配置");
-                ui.add_space(theme::tokens::SPACING_SM);
-                ui.label(theme::small("AI 助手用于 prompt 智能补全 + 图像分析"));
-                ui.add_space(theme::tokens::SPACING_SM);
+            theme::card_with_title(ui, "AI 助手", |ui| {
+                ui.colored_label(theme::tokens::TEXT_3, "○ 未配置");
+                ui.add_space(theme::tokens::NS_1);
+                ui.label(theme::micro("用于 prompt 智能补全 + 图像分析"));
+                ui.add_space(theme::tokens::NS_2);
                 let btn = egui::Button::new(
                     egui::RichText::new("配置 AI 助手")
-                        .size(11.0).color(theme::tokens::TEXT_PRIMARY)
+                        .size(11.0).color(theme::tokens::TEXT_2)
                 )
-                .fill(theme::tokens::BG_RAISED)
-                .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE));
+                .fill(theme::tokens::BG_ELEVATED)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE));
                 ui.add(btn);
             });
 
-            ui.add_space(theme::tokens::SPACING_MD);
+            ui.add_space(theme::tokens::NS_3);
 
-            theme::card(ui, "HTTP 代理 (Clash / v2rayN)", |ui| {
-                ui.colored_label(theme::tokens::TEXT_MUTED, "○ 未启用");
-                ui.add_space(theme::tokens::SPACING_SM);
-                ui.label(theme::small("国内直连 NAI 易被 Cloudflare WAF 拦截"));
-                ui.add_space(theme::tokens::SPACING_SM);
+            theme::card_with_title(ui, "HTTP 代理", |ui| {
+                ui.colored_label(theme::tokens::TEXT_3, "○ 未启用");
+                ui.add_space(theme::tokens::NS_1);
+                ui.label(theme::micro("国内直连 NAI 易被 WAF 拦截"));
+                ui.add_space(theme::tokens::NS_2);
                 let btn = egui::Button::new(
                     egui::RichText::new("配置代理")
-                        .size(11.0).color(theme::tokens::TEXT_PRIMARY)
+                        .size(11.0).color(theme::tokens::TEXT_2)
                 )
-                .fill(theme::tokens::BG_RAISED)
-                .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE));
+                .fill(theme::tokens::BG_ELEVATED)
+                .stroke(egui::Stroke::new(1.0, theme::tokens::LINE));
                 ui.add(btn);
             });
         });
 
-        // 右栏: 数据 / 主题 / 关于
+        // 右栏
         cols[1].vertical(|ui| {
-            theme::card(ui, "数据", |ui| {
-                ui.label(theme::label("存储位置"));
-                ui.add_space(4.0);
-                ui.label(theme::small("C:\\Users\\ywclg\\AppData\\Roaming\\nai-studio-desktop"));
-                ui.add_space(theme::tokens::SPACING_MD);
-
+            theme::card_with_title(ui, "数据", |ui| {
+                ui.label(theme::micro("存储位置"));
+                ui.add_space(theme::tokens::NS_1);
+                ui.label(theme::body2("C:\\Users\\ywclg\\AppData\\Roaming\\nai-studio-desktop"));
+                ui.add_space(theme::tokens::NS_2);
                 ui.horizontal(|ui| {
-                    let open_btn = egui::Button::new(
-                        egui::RichText::new("📁 打开数据目录")
-                            .size(11.0).color(theme::tokens::TEXT_PRIMARY)
+                    let btn = egui::Button::new(
+                        egui::RichText::new("📁 打开目录")
+                            .size(11.0).color(theme::tokens::TEXT_2)
                     )
-                    .fill(theme::tokens::BG_RAISED)
-                    .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE));
-                    ui.add(open_btn);
-                    ui.add_space(theme::tokens::SPACING_SM);
-                    let backup_btn = egui::Button::new(
+                    .fill(theme::tokens::BG_ELEVATED)
+                    .stroke(egui::Stroke::new(1.0, theme::tokens::LINE));
+                    ui.add(btn);
+                    ui.add_space(theme::tokens::NS_1);
+                    let btn = egui::Button::new(
                         egui::RichText::new("💾 备份")
-                            .size(11.0).color(theme::tokens::TEXT_PRIMARY)
+                            .size(11.0).color(theme::tokens::TEXT_2)
                     )
-                    .fill(theme::tokens::BG_RAISED)
-                    .stroke(egui::Stroke::new(1.0, theme::tokens::BORDER_SUBTLE));
-                    ui.add(backup_btn);
+                    .fill(theme::tokens::BG_ELEVATED)
+                    .stroke(egui::Stroke::new(1.0, theme::tokens::LINE));
+                    ui.add(btn);
                 });
             });
 
-            ui.add_space(theme::tokens::SPACING_MD);
+            ui.add_space(theme::tokens::NS_3);
 
-            theme::card(ui, "外观", |ui| {
+            theme::card_with_title(ui, "外观", |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(theme::label("主题:"));
+                    ui.label(theme::body2("主题"));
+                    ui.add_space(theme::tokens::NS_2);
                     egui::ComboBox::from_id_source("theme_box")
-                        .selected_text("深色 (Linear 风)")
+                        .selected_text("深色 v0.8")
                         .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut "dark".to_string(), "dark".to_string(), "深色");
-                            ui.selectable_value(&mut "light".to_string(), "light".to_string(), "浅色");
+                            ui.selectable_value(&mut "dark".to_string(), "dark".to_string(), "深色 v0.8");
                         });
                 });
-                ui.add_space(theme::tokens::SPACING_SM);
-                ui.label(theme::small("Phase C 实装主题切换"));
             });
 
-            ui.add_space(theme::tokens::SPACING_MD);
+            ui.add_space(theme::tokens::NS_3);
 
-            theme::card(ui, "关于", |ui| {
+            theme::card_with_title(ui, "关于", |ui| {
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new(icons::ICON_LOGO)
-                        .size(20.0).color(theme::tokens::ACCENT));
-                    ui.add_space(theme::tokens::SPACING_SM);
+                        .size(18.0).color(theme::tokens::ACCENT));
+                    ui.add_space(theme::tokens::NS_2);
                     ui.vertical(|ui| {
-                        ui.label(egui::RichText::new("NAI Studio Desktop")
-                            .size(13.0).strong().color(theme::tokens::TEXT_PRIMARY));
-                        ui.label(theme::small("v2.0.0 · egui · 0 WebView · 9.1 MB"));
+                        ui.label(theme::body("NAI Studio Desktop"));
+                        ui.label(theme::micro("v2.0.0 · egui · 仿 PHP v0.8 · 9.1 MB"));
                     });
                 });
-                ui.add_space(theme::tokens::SPACING_SM);
-                ui.label(theme::small("Tauri → egui 全量重构, 后端 API 零修改"));
             });
         });
     });
