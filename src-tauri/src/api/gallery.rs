@@ -154,7 +154,7 @@ async fn list_inner(state: &SharedState, params: &HashMap<String, String>) -> Ap
         "SELECT id, batch_id, operation, model, sampler, steps, scale, seed, width, height,
                 cfg_rescale, noise_schedule, uc_preset, image_path, thumbnail_path,
                 is_favorite, notes, created_at,
-                LEFT(prompt, 120) AS prompt_preview
+                substr(prompt, 1, 120) AS prompt_preview
          FROM generations
          WHERE {}
          ORDER BY created_at DESC, id DESC
