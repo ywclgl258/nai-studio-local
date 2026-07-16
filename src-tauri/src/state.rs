@@ -32,4 +32,20 @@ impl AppState {
     pub fn shared(self) -> Arc<Self> {
         Arc::new(self)
     }
+
+    /// 从 settings 读代理 URL
+    ///   None = 不走代理
+    ///   阻塞,在 block 内取完就走
+    pub fn proxy_url(&self) -> Option<String> {
+        let conn = self.db.lock();
+        let row: Option<(i64, Option<String>)> = conn.query_row(
+            "SELECT proxy_enabled, proxy_url FROM settings WHERE id = 1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?))
+        ).ok();
+        match row {
+            Some((1, Some(u))) if !u.is_empty() => Some(u),
+            _ => None,
+        }
+    }
 }

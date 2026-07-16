@@ -24,13 +24,25 @@ static JOBS: Lazy<Mutex<HashMap<String, JobState>>> = Lazy::new(|| Mutex::new(Ha
 #[derive(Clone)]
 pub struct JobState {
     pub name: &'static str,
-    pub status: String,         // "idle" | "running" | "done" | "error" | "cancelled"
+    pub status: String,         // "idle" | "running" | "done" | "error" | "cancelled" | "stopped"
     pub started_at: Option<Instant>,
     pub finished_at: Option<Instant>,
     pub done: i64,
     pub total: i64,
     pub message: String,
     pub cancel: Arc<AtomicBool>,
+    // 扩展统计字段(各 worker 自行更新,通过 update(|j| ...) 改)
+    pub added: i64,
+    pub translated: i64,
+    pub images: i64,
+    pub skipped: i64,
+    pub errors: i64,
+    pub current_tag: String,
+    pub fetched: i64,
+    pub current_page: i64,
+    pub pages_total: i64,
+    pub last_error: String,
+    pub rate_per_sec: f64,
 }
 
 impl JobState {
@@ -43,6 +55,18 @@ impl JobState {
             "total": self.total,
             "message": self.message,
             "elapsed_sec": elapsed,
+            "added": self.added,
+            "translated": self.translated,
+            "images": self.images,
+            "skipped": self.skipped,
+            "errors": self.errors,
+            "current_tag": self.current_tag,
+            "fetched": self.fetched,
+            "current_page": self.current_page,
+            "pages_total": self.pages_total,
+            "last_error": self.last_error,
+            "rate_per_sec": self.rate_per_sec,
+            "progress": self.done,
         })
     }
 }
@@ -62,6 +86,17 @@ pub fn get_or_create(name: &'static str) -> JobState {
         total: 0,
         message: String::new(),
         cancel: Arc::new(AtomicBool::new(false)),
+        added: 0,
+        translated: 0,
+        images: 0,
+        skipped: 0,
+        errors: 0,
+        current_tag: String::new(),
+        fetched: 0,
+        current_page: 0,
+        pages_total: 0,
+        last_error: String::new(),
+        rate_per_sec: 0.0,
     };
     map.insert(name.to_string(), state.clone());
     state

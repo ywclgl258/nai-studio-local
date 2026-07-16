@@ -22,6 +22,7 @@ pub mod upscale;
 pub mod tags;
 pub mod artists;
 pub mod danbooru;
+pub mod ai_client;
 pub mod ai_analyze;
 pub mod prompts;
 pub mod character_presets;

@@ -459,8 +459,8 @@ function pollImportAll() {
     }, 3000);
 }
 
-// ===== 抓取标签示例图（SSE 流式，仿 tags.novelai.dev 预下载） =====
-let _fetchImgES = null;
+// ===== 抓取标签示例图（POST 启动 + 轮询 status, 跟其他 admin/* 一致） =====
+let _fetchImgTimer = null;
 
 function initFetchImg() {
     const btnStart = document.getElementById('actionFetchImg');
@@ -470,20 +470,35 @@ function initFetchImg() {
     // 首次进入显示覆盖率
     refreshFetchImgCoverage();
 
-    btnStart.addEventListener('click', () => {
+    btnStart.addEventListener('click', async () => {
         const limit = parseInt(document.getElementById('fetchImgLimit')?.value || '500');
         if (!confirm(`启动后会从 Danbooru 抓 ${limit} 张标签示例图存到本地 storage/tag-previews/。\n抓图后无需 JS 状态机，标签超市直接显示预览。\n\n预计耗时：${Math.ceil(limit / 40)} 分钟\n\n确定继续？`)) return;
 
-        startFetchImg(limit);
-    });
-
-    btnStop.addEventListener('click', () => {
-        if (_fetchImgES) {
-            _fetchImgES.close();
-            _fetchImgES = null;
-            toast('已停止抓图', { type: 'warning' });
+        btnStart.disabled = true;
+        btnStop.disabled = false;
+        try {
+            const r = await api.fetchImgStart(limit);
+            if (r.ok) {
+                toast('已开始抓图（后台跑，可关浏览器）', { type: 'info', duration: 4000 });
+                pollFetchImg();
+            } else {
+                toast('启动失败: ' + (r.error || '未知'), { type: 'error' });
+                btnStart.disabled = false;
+                btnStop.disabled = true;
+            }
+        } catch (e) {
+            toast('启动失败: ' + e.message, { type: 'error' });
             btnStart.disabled = false;
             btnStop.disabled = true;
+        }
+    });
+
+    btnStop.addEventListener('click', async () => {
+        try {
+            await api.fetchImgStop();
+            toast('已请求停止（处理完当前 tag 后会停）', { type: 'warning' });
+        } catch (e) {
+            toast('停止失败: ' + e.message, { type: 'error' });
         }
     });
 }
@@ -499,57 +514,52 @@ async function refreshFetchImgCoverage() {
     }
 }
 
-function startFetchImg(limit) {
+function pollFetchImg() {
     const btnStart = document.getElementById('actionFetchImg');
     const btnStop  = document.getElementById('actionStopFetchImg');
     const el       = document.getElementById('fetchImgProgress');
     const fill     = document.getElementById('fetchImgBarFill');
 
-    btnStart.disabled = true;
-    btnStop.disabled = false;
-    fill.style.width = '0%';
-    el.innerHTML = '⏳ 启动中...';
-
-    if (_fetchImgES) _fetchImgES.close();
-    _fetchImgES = new EventSource(api.fetchImgStart(limit));
-
-    let lastMsg = '';
-    _fetchImgES.onmessage = (e) => {
-        try {
-            const d = JSON.parse(e.data);
-            if (d.stage === 'start') {
-                el.innerHTML = `📋 共 <strong>${d.total}</strong> 个待抓（limit=${d.limit}）`;
-            } else if (d.stage === 'progress') {
-                const pct = d.total > 0 ? (d.index / d.total * 100) : 0;
-                fill.style.width = pct.toFixed(1) + '%';
-                const icon = { ok: '✅', fail: '❌', noPosts: '·', skip: '⏭' }[d.status] || '?';
-                el.innerHTML = `${icon} ${d.index}/${d.total} · ${d.name} · 累计 ✅${d.ok} ⏭${d.skip} ·${d.noPosts} ❌${d.fail} · ${d.elapsed}s`;
-            } else if (d.stage === 'done') {
-                el.innerHTML = `🎉 完成！本次抓 ${d.ok} 成功 · ${d.fail} 失败 · ${d.noPosts} 无 post · ${d.skip} 已存在 · 用时 ${d.elapsed}s · 全局覆盖率 <strong>${d.coverage}%</strong>（${d.global.have}/${d.global.total}）`;
-                fill.style.width = '100%';
-                btnStart.disabled = false;
-                btnStop.disabled = true;
-                _fetchImgES.close();
-                _fetchImgES = null;
-                toast(`🎉 抓图完成，全局覆盖率 ${d.coverage}%`, { type: 'success', duration: 5000 });
+    clearInterval(_fetchImgTimer);
+    _fetchImgTimer = setInterval(async () => {
+        const s = await api.fetchImgStatus();
+        renderFetchImgStatus(s);
+        if (s.status === 'done' || s.status === 'stopped' || s.status === 'error' || s.status === 'idle') {
+            clearInterval(_fetchImgTimer);
+            if (s.status === 'done') {
+                toast(`🎉 抓图完成, ok=${s.added} skip=${s.skipped} fail=${s.errors}`, { type: 'success', duration: 5000 });
                 refreshFetchImgCoverage();
             }
-        } catch (err) {
-            // ignore parse errors
+            btnStart.disabled = false;
+            btnStop.disabled = true;
         }
-    };
+    }, 2000);
+}
 
-    _fetchImgES.onerror = (e) => {
-        if (_fetchImgES && _fetchImgES.readyState === EventSource.CLOSED) {
-            // 正常关闭
-            return;
-        }
-        el.innerHTML = '❌ 连接出错，已中断';
-        btnStart.disabled = false;
-        btnStop.disabled = true;
-        if (_fetchImgES) _fetchImgES.close();
-        _fetchImgES = null;
-    };
+function renderFetchImgStatus(s) {
+    const el   = document.getElementById('fetchImgProgress');
+    const fill = document.getElementById('fetchImgBarFill');
+    if (!el || !fill || !s) return;
+    if (s.status === 'idle') {
+        el.textContent = '尚未运行';
+        fill.style.width = '0%';
+        return;
+    }
+    const pct = s.total > 0 ? Math.min(100, (s.done / s.total) * 100) : 0;
+    fill.style.width = pct + '%';
+    const statusText = {
+        running: '⏳ 抓图中',
+        done:    '✅ 完成',
+        stopped: '⏹ 已停止',
+        error:   '❌ 出错',
+    }[s.status] || s.status;
+    el.innerHTML = `
+        <div>${statusText} · ${s.message || ''}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">
+            ${s.done}/${s.total} · 成功 ${s.added} · 跳过 ${s.skipped} · 错误 ${s.errors} · ${s.elapsed_sec || 0}s
+        </div>
+        ${s.current_tag ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">当前: ' + s.current_tag + '</div>' : ''}
+    `;
 }
 
 /* ===== Real-ESRGAN 无损放大（设置页一键下载 + 状态显示） ===== */

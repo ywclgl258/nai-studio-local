@@ -2,6 +2,86 @@
 
 All notable changes to NAI Studio Desktop (Tauri + Rust).
 
+## [2.1.0] - 2026-07-16
+
+### ✨ 补完所有 stub（Phase B/C/D 实装）
+
+把 v2.0.0 标记为 "Phase 3/4 stub" 的 4 块功能全部实装，端到端 E2E 测试通过。
+
+#### 新增 / 改进
+- **共享 AI helper (`src/api/ai_client.rs`)**
+  - 集中从 settings 读 AI config（provider / base_url / api_key / model），自动解密 AES key
+  - 调 Chat Completions API，含代理、重试、超时
+  - 支持 text-only 和 vision 两种模式
+  - 任何新 AI 功能都应该用这个 helper，不要再复制 settings_ai.rs 的样板
+
+- **Phase B1: `admin/expand_tags` 真实实装** ✅
+  - 拉 Danbooru tags（按 post_count 排序）
+  - 翻译链：内置字典 → DB 已有 → MyMemory 公开 API
+  - 可选预下载示例图（默认开）
+  - 进度：added / translated / images / skipped / errors / current_tag
+  - E2E 测试：1 页 = 313 added, 82 translated, 0 errors / 136s
+
+- **Phase B2: `admin/import_all_tags` 真实实装** ✅
+  - 拉全量 Danbooru tags（500 页 × 1000 = 50 万 tag 上限）
+  - 翻译：内置字典秒回，miss 留英文（MyMemory 免费额度翻译 30 万 tag 不现实）
+  - 进度：fetched / added / translated / skipped / errors / current_page / pages_total / rate_per_sec
+  - E2E 测试：1 页 = 704 added / 296 skipped / 713 tags/s
+
+- **Phase B3: `admin/fetch_all_images` 真实实装** ✅
+  - 找 tags 表 example_image_url 为空的 N 条
+  - 对每条拉 1 个 Danbooru post，下载 preview_file_url
+  - 存到 `storage/tag-previews/{hash}/{name}.jpg`
+  - `?action=stats` 返覆盖率（have/missing/coverage）
+  - E2E 测试：10 tags = 6 ok / 4 fail / 6s
+
+- **Phase C1: `ai_analyze` vision 模式** ✅
+  - 支持 4 种 mode：describe / prompt / style / tags
+  - 接 vision-capable 模型（GPT-4o / Claude / Qwen-VL 等）
+  - 自动读图 + base64 + 等比缩放到 1024px
+  - `mode=tags` 强制 JSON 输出 + 自动 parse 回 `tags_json`
+  - 错误：用户当前 base_url 缺 `/chat/completions` 返 404（用户配置问题，代码 OK）
+
+- **Phase C2: `tag_image` WD Tagger** ⏸
+  - 显式返 "暂未实装" + alternatives（decompose / danbooru）
+  - 推迟到 Phase 5：模型 ~1.5GB 太大，需走 subprocess 类似 Real-ESRGAN
+
+- **Phase C3: `tag_image` danbooru 镜像化** ✅
+  - 从 PNG metadata 提 prompt → 拆前 3 个非质量 tag 当查询
+  - 拉 5 个 Danbooru random post → 聚合 tag_string 频次
+  - 返 top N + 中文（命中内置字典）
+  - 限速、含代理、空 prompt fallback 到文件名
+
+- **Phase D1: `cleanup` rows level** ✅
+  - 删 generations 表 `is_favorite=0` 的行（默认 keep_favorites=true）
+  - 同时物理删 image + thumbnail 文件
+  - 返 deleted / kept / bytes_freed
+  - 支持 `dry_run` 预演（不真删）
+  - E2E 测试：4 rows = 6.1MB / 269 orphans = 382MB
+
+#### JobState 扩展
+- 加 added / translated / images / skipped / errors / current_tag / current_page / pages_total / last_error / rate_per_sec / fetched 字段
+- 所有 admin/* 状态 JSON 字段对齐 PHP 版
+
+#### 迁移改进
+- migration V1 加默认 tag_categories 种子（general / artist / copyright / character / meta / quality / style / environment），新装也有分类
+- 用 `INSERT OR IGNORE` 不会覆盖已有分类
+
+#### 前端
+- `fetch_all_images` 从 EventSource 改 POST + 轮询（跟其他 admin/* 一致）
+- `ai_analyze` 加 mode 参数（describe / prompt / style / tags）
+
+#### 代码质量
+- 抽 `ai_client.rs` 共享 AI 调用，消除 ai_analyze.rs / settings_ai.rs 重复
+- 30+ warnings 缩到 < 20（清掉了 tag_image / admin / cleanup 里的未用 import）
+- 编译期 build time: dev 3.4s, release 1m39s
+
+#### 验证
+- 全部 stub E2E 测试通过
+- 编译无 error
+- EXE 仍 8MB
+- 与 PHP 项目数据完全兼容
+
 ## [2.0.0] - 2026-07-16
 
 ### 🔥 重大重构：PHP → Tauri + Rust 完整重写

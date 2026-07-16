@@ -1,115 +1,103 @@
-//! /api/ai_analyze -- AI 图像分析
+//! /api/ai_analyze -- AI 图像分析 (支持 text-only 和 vision)
 //!
 //! 跟 NAI Studio PHP 项目 ai_analyze.php 等价
-//!   POST {image_path: '...', prompt?: '...'}
-//!   Returns { analysis: '...', tokens_used: N }
+//!   POST {image_path: '...', prompt?: '...', mode?: 'describe'|'prompt'|'style'|'tags'}
+//!   Returns { ok, analysis, tokens_used, ms, mode, model }
 //!
-//! Phase 3.3: 基础 stub — 检查 settings_ai,有 key 则发个简单 prompt
-//! Phase 4: 多模态视觉 + 风格分析 + 自动 prompt 生成
+//! Mode:
+//!   - describe: 详细描述图 (默认)
+//!   - prompt:   生成 NAI prompt (English, comma-separated tags)
+//!   - style:    风格分析
+//!   - tags:     拆分成 Danbooru tag 分类
 
-use std::time::Duration;
+use std::path::Path;
 
 use axum::Json;
 use axum::extract::State;
-use reqwest::Client;
 use serde_json::{Value, json};
 
 use crate::api::SharedState;
+use crate::api::ai_client::{self, AiConfig, ChatOptions, Message};
 use crate::error::AppResult;
 
-const DEFAULT_PROMPT: &str = "请用中文描述这张图片的内容、风格、构图、人物特征等关键信息(100字内)。";
+const DEFAULT_DESCRIBE: &str = "请用中文详细描述这张图片的内容、风格、构图、人物特征、配色、光照等关键信息(150字内)。";
+const PROMPT_MODE: &str = "请为这张图生成 NovelAI 用的 prompt 标签 (英文, 逗号分隔)。\
+按 Danbooru 风格: 1girl/solo/外观/服装/姿势/视角/背景/质量标签, 30 个以内。\
+只要 prompt 本身,不要其他解释。";
+const STYLE_MODE: &str = "请用中文分析这张图片的艺术风格 (画师风格 / 渲染 / 配色 / 光照 / 氛围), 100 字内。";
+const TAGS_MODE: &str = "请把图中的关键元素拆分成 Danbooru 标签分类, 严格按 JSON 输出:\
+{\"general\":[],\"artist\":[],\"character\":[],\"copyright\":[],\"meta\":[]}\
+每个数组 5-15 个英文 tag (snake_case)。";
 
 pub async fn handle(
     State(state): State<SharedState>,
     Json(body): Json<Value>,
 ) -> AppResult<Json<Value>> {
     let image_path = body.get("image_path").and_then(|v| v.as_str());
-    let user_prompt = body.get("prompt").and_then(|v| v.as_str()).unwrap_or(DEFAULT_PROMPT);
+    let mode = body.get("mode").and_then(|v| v.as_str()).unwrap_or("describe");
+    let user_prompt = body.get("prompt").and_then(|v| v.as_str());
+
     if image_path.is_none() {
         return Ok(Json(json!({"ok": false, "error": "image_path required"})));
     }
+    let image_path = image_path.unwrap();
 
-    // 读 settings_ai
-    let (provider, base_url, api_key, model) = {
-        let conn = state.db.lock();
-        let row: Option<(String, Option<String>, Option<String>, Option<String>)> = conn.query_row(
-            "SELECT ai_provider, ai_base_url, ai_api_key, ai_model FROM settings WHERE id = 1",
-            [],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
-        ).ok();
-        let r = row.unwrap_or_else(|| ("deepseek".to_string(), None, None, None));
-        let key = r.2.and_then(|e| if e.is_empty() { None } else { Some(crate::encryption::decrypt(&e).unwrap_or(e)) });
-        (r.0, r.1, key, r.3)
+    // 检查文件
+    let abs = if let Some(rel) = image_path.strip_prefix("/storage/") {
+        state.paths.storage.join(rel)
+    } else {
+        std::path::PathBuf::from(image_path)
     };
-    let url = match base_url {
-        Some(u) if !u.is_empty() => u,
-        _ => match provider.as_str() {
-            "deepseek"    => "https://api.deepseek.com/v1/chat/completions".to_string(),
-            "openai"      => "https://api.openai.com/v1/chat/completions".to_string(),
-            "siliconflow" => "https://api.siliconflow.cn/v1/chat/completions".to_string(),
-            "ollama"      => "http://127.0.0.1:11434/v1/chat/completions".to_string(),
-            _             => return Ok(Json(json!({"ok": false, "error": format!("unknown provider: {}", provider)}))),
-        }
-    };
-    let model = model.unwrap_or_else(|| match provider.as_str() {
-        "deepseek"    => "deepseek-chat",
-        "openai"      => "gpt-4o-mini",
-        "siliconflow" => "Qwen/Qwen2.5-7B-Instruct",
-        "ollama"      => "llama3.2",
-        _             => "gpt-4o-mini",
-    }.to_string());
-    let api_key = match api_key {
-        Some(k) => k,
-        None => return Ok(Json(json!({"ok": false, "error": "AI API key 未设置，请在设置页配置"}))),
-    };
-
-    // Phase 3.3: 简单 text-only 调 LLM
-    // Phase 4: 接 vision 模型的 image_url 字段
-    let body_json = json!({
-        "model": model,
-        "messages": [{"role": "user", "content": user_prompt}],
-        "max_tokens": 500,
-    });
-    let client = Client::builder().timeout(Duration::from_secs(60))
-        .build()
-        .map_err(|e| crate::error::AppError::Upstream(format!("reqwest: {}", e)))?;
-    let start = std::time::Instant::now();
-    let resp = client.post(&url)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .json(&body_json)
-        .send().await
-        .map_err(|e| crate::error::AppError::Upstream(format!("network: {}", e)))?;
-    let ms = start.elapsed().as_millis() as i64;
-    let status = resp.status();
-    let text = resp.text().await.unwrap_or_default();
-    if !status.is_success() {
-        return Ok(Json(json!({
-            "ok": false,
-            "error": format!("{} 返 HTTP {}: {}", provider, status.as_u16(), &text[..text.len().min(300)]),
-            "ms": ms,
-        })));
+    if !abs.is_file() {
+        return Ok(Json(json!({"ok": false, "error": format!("file not found: {}", image_path)})));
     }
-    let parsed: Value = serde_json::from_str(&text).unwrap_or_default();
-    let content = parsed.get("choices")
-        .and_then(|c| c.get(0))
-        .and_then(|c| c.get("message"))
-        .and_then(|m| m.get("content"))
-        .and_then(|c| c.as_str())
-        .unwrap_or("")
-        .to_string();
-    let tokens = parsed.get("usage")
-        .and_then(|u| u.get("total_tokens"))
-        .and_then(|t| t.as_i64())
-        .unwrap_or(0);
 
-    Ok(Json(json!({
+    // 选 prompt
+    let prompt_text = user_prompt.map(|s| s.to_string()).unwrap_or_else(|| match mode {
+        "prompt" => PROMPT_MODE.to_string(),
+        "style"  => STYLE_MODE.to_string(),
+        "tags"   => TAGS_MODE.to_string(),
+        _        => DEFAULT_DESCRIBE.to_string(),
+    });
+
+    // 读 AI config
+    let cfg = match AiConfig::load(&state) {
+        Ok(c) => c,
+        Err(e) => return Ok(Json(json!({"ok": false, "error": format!("AI config: {}", e)}))),
+    };
+
+    // 调 AI (vision)
+    let data_uri = match ai_client::read_image_as_data_uri(abs.to_str().unwrap_or(""), 1024) {
+        Ok(u) => u,
+        Err(e) => return Ok(Json(json!({"ok": false, "error": format!("read image: {}", e)}))),
+    };
+    let messages = vec![Message::Vision { text: prompt_text, image: data_uri }];
+    let mut opts = ChatOptions::default()
+        .with_max_tokens(if mode == "describe" { 600 } else { 800 })
+        .with_temperature(0.4);
+    if mode == "tags" { opts = opts.with_json_mode(); }
+
+    let resp = match ai_client::chat(&state, &cfg, &messages, opts).await {
+        Ok(r) => r,
+        Err(e) => return Ok(Json(json!({"ok": false, "error": e.to_string()}))),
+    };
+
+    let mut out = json!({
         "ok": true,
-        "analysis": content,
-        "tokens_used": tokens,
-        "ms": ms,
-        "model": model,
-        "provider": provider,
-        "note": "Phase 3.3 text-only；Phase 4 接 vision",
-    })))
+        "analysis": resp.content,
+        "tokens_used": resp.tokens_used,
+        "ms": resp.ms,
+        "model": resp.model,
+        "mode": mode,
+        "provider": cfg.provider,
+    });
+    if mode == "tags" {
+        // 尝试 parse JSON
+        if let Ok(parsed) = serde_json::from_str::<Value>(&resp.content) {
+            out["tags_json"] = parsed;
+        }
+    }
+    // suppress unused
+    let _ = Path::new(image_path);
+    Ok(Json(out))
 }

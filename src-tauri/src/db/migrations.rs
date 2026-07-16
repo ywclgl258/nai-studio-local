@@ -101,6 +101,17 @@ CREATE TABLE IF NOT EXISTS "tag_categories" (
     "tag_count"     INTEGER NOT NULL DEFAULT 0
 );
 
+-- 默认分类(可改 display_order,别删 slug='general' / 'artist' 等核心分类)
+INSERT OR IGNORE INTO "tag_categories" ("id", "slug", "name", "name_cn", "description", "display_order", "tag_count") VALUES
+    (1, 'general',     'General',     '通用',     'General subject tags (1girl, scenery, etc.)', 10, 0),
+    (2, 'artist',      'Artist',      '画师',     'Artist tags', 20, 0),
+    (3, 'copyright',   'Copyright',   '版权',     'Copyright and franchise tags', 30, 0),
+    (4, 'character',   'Character',   '角色',     'Named character tags', 40, 0),
+    (5, 'meta',        'Meta',        '元数据',   'Meta tags (rating, source, etc.)', 50, 0),
+    (6, 'quality',     'Quality',     '质量',     'Quality tags (masterpiece, best quality, etc.)', 60, 0),
+    (7, 'style',       'Style',       '风格',     'Art style tags', 70, 0),
+    (8, 'environment', 'Environment', '环境',     'Environment and setting tags', 80, 0);
+
 -- ===== tags =====
 CREATE TABLE IF NOT EXISTS "tags" (
     "id"            INTEGER PRIMARY KEY AUTOINCREMENT,

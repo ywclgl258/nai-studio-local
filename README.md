@@ -4,7 +4,7 @@
 >
 > 把 1.8GB 的 PHP + XAMPP 老栈重写成 8MB 单 EXE — 启动 <1s, 内存 44MB, 数据本地 SQLite。
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](VERSION)
 [![Tauri](https://img.shields.io/badge/Tauri-2.11-orange.svg)](https://tauri.app/)
 [![Rust](https://img.shields.io/badge/Rust-stable-red.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#-license)
@@ -380,21 +380,19 @@ D:\anima\nai-studio-desktop\
    - 影响: 占 0 空间, 不影响功能
    - 解决: 重启机器后在资源管理器右键删, 或 `Remove-Item -LiteralPath "D:\anima\nai-studio" -Force`(需 admin)
 
-2. **Phase 3 / Phase 4 stub 标记**
-   - `ai_analyze`: text-only 调 LLM(Phase 4 接 vision 多模态)
-   - `tag_image`: 仅 `method=decompose` 走内置拆分(Phase 4 接 WD Tagger ONNX)
-   - `admin/*`: 模拟任务框架(Phase 4 实装 AI 拆 tag / 拉 Danbooru / 拉 NAI 历史)
-   - `cleanup`: 不实现 `level=all` 删除 generations 行(Phase 4)
-
-3. **WebView race condition**
+2. **WebView race condition**
    - `tauri.conf.json` 配 `frontendDist: "../src"` + `win.eval("window.location.replace(url)")` 有 race
    - 改进方向: 用 `WebviewUrl::External` 模式直接加载 HTTP URL
    - 影响: 偶尔有 0.5s 闪烁, 无功能问题
 
-4. **release build 不带 installer**
+3. **release build 不带 installer**
    - `cargo tauri build --no-bundle` 只产 EXE(8MB)
    - `cargo tauri build` 加 MSI/NSIS 还要装 wix / nsis 工具链(约 200MB),本项目没做
    - 需要 installer 时: 自带 `tools/` 加 wix 3.x + NSIS 3.x 后再 build
+
+4. **WD Tagger (tag_image method=wd) 暂未实装** ⏸
+   - 模型 ~1.5GB,Phase 5 单独装,走 subprocess 类似 Real-ESRGAN
+   - 现可用: `method=decompose` (从 PNG metadata 拆) 或 `method=danbooru` (Danbooru 镜像)
 
 ---
 

@@ -80,5 +80,5 @@ pub fn api_router() -> Router<Arc<AppState>> {
         // ===== Admin (long tasks) =====
         .route("/admin/expand-tags",      get(api::admin::expand_tags::status).post(api::admin::expand_tags::start).delete(api::admin::expand_tags::stop))
         .route("/admin/import-all-tags",  get(api::admin::import_all_tags::status).post(api::admin::import_all_tags::start).delete(api::admin::import_all_tags::stop))
-        .route("/admin/fetch_all_images", get(api::admin::fetch_all_images::status).post(api::admin::fetch_all_images::start).delete(api::admin::fetch_all_images::stop))
+        .route("/admin/fetch_all_images", get(api::admin::fetch_all_images::status_or_stats).post(api::admin::fetch_all_images::start).delete(api::admin::fetch_all_images::stop))
 }

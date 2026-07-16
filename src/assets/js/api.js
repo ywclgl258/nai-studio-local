@@ -143,9 +143,11 @@ export const api = {
     importAllStatus: () => request('GET',  '/api/admin/import-all-tags.php?action=status'),
     importAllStart:  (params) => request('POST', '/api/admin/import-all-tags.php?action=start', params),
     importAllStop:   () => request('POST', '/api/admin/import-all-tags.php?action=stop'),
-    // 批量抓取标签示例图（SSE 流式）
+    // 批量抓取标签示例图（POST 启动 + 轮询 status）
     fetchImgStats:   () => request('GET', '/api/admin/fetch_all_images.php?action=stats'),
-    fetchImgStart:   (limit) => `/api/admin/fetch_all_images.php?limit=${limit}`,
+    fetchImgStatus:  () => request('GET', '/api/admin/fetch_all_images.php'),
+    fetchImgStart:   (limit) => request('POST', '/api/admin/fetch_all_images.php', { limit }),
+    fetchImgStop:    () => request('DELETE', '/api/admin/fetch_all_images.php'),
     clearProxy:     () => request('POST', '/api/proxy.php?action=clear'),
 
     // Prompt decomposer
