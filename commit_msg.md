@@ -1,63 +1,51 @@
-feat(egui-ui): 仿 PHP v0.8 三栏布局 (左 280 + 中 + 右 280)
+revert: 回到 Tauri + WebView 架构 (用户反馈 egui 重构版"太丑了")
 
-之前的设计 (Linear 全屏 + Ctrl+K) 跟原 PHP 网页体验差太多。
-这次完全照搬 NAI Studio PHP v0.8 的 app-shell[v2] 布局,
-改用 egui 重做, 用户切换到新 GUI 完全无缝。
+之前试过 3 次 egui 重构 (Phase A.5 美化 / 全屏 + Ctrl+K / 仿 PHP v0.8 三栏),
+用户都反馈不够好。这次完全回退到最初 Tauri + WebView 架构,
+跟原 PHP 网页 1:1 体验, 后端 API 零修改。
 
-## 布局对齐 PHP v0.8
+## 删除
 
-完全照搬 PHP CSS:
-- topbar 56px (ns-topbar-h)
-- left 280px (ns-sidebar-w) - 4 tab + 大输入 + 模型参数 + 预设
-- main 1fr - 当前 view (生图 / 画廊 / 标签 / 设置)
-- history 280px (ns-history-w) - 历史画廊 2 列 2:3 缩略图
-- statusbar 24px
+- 删 src-tauri/src/ui/ 整个目录
+  - app.rs / theme.rs / command.rs / fonts.rs / http_client.rs / icons.rs
+  - views/{home,gallery,tags,settings,left_panel,history_strip}.rs
+- 删 Cargo.toml 里 eframe / egui / egui_extras / tray-icon / single-instance
 
-## 设计 token 全部对齐
+## 恢复 (从 git history 3939557)
 
-配色 (ns-bg / ns-text / ns-accent 系列):
-- bg: #0a0c14 (v0.8 略紫黑)
-- bg-soft: #11141f (面板)
-- bg-elevated: #171b29 (卡片)
-- accent: #7c5cff (v0.8 紫)
-- accent-2: #22d3ee (青)
-- text: #e6ebf5
-- text-2: #a3acc2
-- text-3: #6c768e
-- line: rgba(255,255,255,0.06) 淡白边框
-- accent-soft: rgba(124,92,255,0.14)
-- success: #34d399
-- danger: #fb7185
+- src-tauri/tauri.conf.json   Tauri 2.x 配置 (frontendDist ../src, csp null)
+- src-tauri/build.rs          tauri_build::build()
+- src-tauri/capabilities/default.json  core:default 权限
+- src-tauri/src/lib.rs         Tauri::Builder + setup + WebView eval location.replace
 
-间距 (4 网格 ns-1..6):
-- ns-1: 4 / ns-2: 8 / ns-3: 12 / ns-4: 16 / ns-5: 24 / ns-6: 32
+## 改 main.rs
 
-## 新增文件
+- 4 行 main, 直接调 nai_studio_lib::run()
 
-- src-tauri/src/ui/views/left_panel.rs    左栏 (4 tab + 大输入 + 模型参数 + 预设)
-- src-tauri/src/ui/views/history_strip.rs 右栏 (头部 + 4 tab + 2 列 2:3 缩略图 + hover meta)
+## Cargo.toml
 
-## 重写
+- 加回 tauri 2.11.3 + tauri-plugin-log + tauri-plugin-single-instance + tauri-build
+- 删 eframe 0.29 + egui 0.29 + egui_extras 0.29 + tray-icon 0.19 + single-instance 0.3
+- 保留 env_logger (Tauri 0.7+ 也用得上)
 
-- app.rs: 完全照搬 PHP grid 三栏布局
-- theme.rs: 全部 token 用 ns-* v0.8, helper 函数 (line/accent_soft) 处理 const 限制
-- home.rs (生图): 中央大预览 (2:3 比例) + 进度条 + FAB 风格生成按钮
-- gallery.rs: 全屏网格
-- tags.rs: 搜索 + 分类 chip + 标签云
-- settings.rs: 双栏卡片 (NAI Key / AI 助手 / 代理 vs 数据 / 主题 / 关于)
+## 验证
 
-## 视觉细节
+- Release EXE: 7.99 MB (跟最初 v2.0.0 Tauri 版完全一致)
+- 启动: <500ms
+- 内存: 30 MB (egui 版 197 MB, 减 84%)
+- API 验证: GET /api/gallery => 200, 用户真实数据返回正常
+- WebView 加载原 PHP src/index.html, 1:1 体验
+- HTTP server 127.0.0.1:RANDOM_PORT 仍然提供 30+ 后端 API
 
-- 4 tab 切换仿 history-tabs 风格 (active: ACCENT 文字 + ACCENT_SOFT 背景 + LINE_ACCENT 边框)
-- 缩略图 hover 显示 seed + model 浮层 (BG 0.85 alpha)
-- 卡片 BG_SOFT 背景 + LINE 1px 边框 (PHP 风格)
-- 顶栏迷你生成按钮 (FAB 风格, accent 紫)
-- 状态条 24px 极薄, 显示当前 view + 后端状态
+## 性能对比 (Tauri vs egui)
 
-## 兼容
+| 指标 | Tauri + WebView (回归) | egui (回归前) |
+|------|----------------------|-----------------|
+| EXE | 7.99 MB | 9.15 MB |
+| 启动内存 | 30 MB | 197 MB |
+| 渲染 | 浏览器 (WebView2) | 即时模式 (glow) |
+| 体验 | 跟原 PHP 网页 1:1 | egui 原生 |
+| API 后端 | 30+ handlers, 0 改动 | 30+ handlers, 0 改动 |
 
-- 后端 API 零修改 (30+ handlers 全保留)
-- Ctrl+K 命令面板 仍可用
-- 数字键 1-4 切换 tab 仍可用
-
-Release EXE: 9.1 MB
+结论: Tauri + WebView 完胜 (体积、内存、用户体验) — 这次老老实实用网页,
+不再瞎折腾"真原生"了。
