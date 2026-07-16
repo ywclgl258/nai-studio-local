@@ -6,6 +6,7 @@
 //! Phase D: 高级功能 (Vibe / Precise / Mask / 批量 / AI 助手 / 上传 / 导入 ...)
 
 pub mod app;
+pub mod command;
 pub mod fonts;
 pub mod theme;
 pub mod icons;
