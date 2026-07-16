@@ -8,5 +8,6 @@
 pub mod app;
 pub mod fonts;
 pub mod theme;
+pub mod icons;
 pub mod views;
 pub mod http_client;
